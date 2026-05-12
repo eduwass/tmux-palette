@@ -3,6 +3,7 @@ import { commands } from "./palettes/commands"
 import { findPane } from "./palettes/find-pane"
 import { movePane } from "./palettes/move-pane"
 import type { Item, PaletteDef } from "./types"
+import { userCommands } from "./userConfig"
 
 const palettes: Record<string, PaletteDef> = {
   commands,
@@ -11,11 +12,20 @@ const palettes: Record<string, PaletteDef> = {
 }
 
 const name = process.argv[2] || "commands"
-const def = palettes[name]
+let def = palettes[name]
 
 if (!def) {
   console.error(`Unknown palette: ${name}. Available: ${Object.keys(palettes).join(", ")}`)
   process.exit(1)
+}
+
+// Append user-defined items to the commands palette (~/.config/tmux-palette/commands.json).
+if (name === "commands") {
+  const extras = userCommands()
+  if (extras.length) {
+    const baseItems: Item[] = typeof def.items === "function" ? await def.items() : def.items
+    def = { ...def, items: [...baseItems, ...extras] }
+  }
 }
 
 // Measure mode: print desired popup rows to stdout. Bash wrapper uses

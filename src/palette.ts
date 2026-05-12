@@ -1,6 +1,7 @@
 import { dispatchToFile } from "./dispatch"
 import { makeColors, resolveTheme } from "./theme"
 import type { Colors, Item, PaletteDef } from "./types"
+import { userAliases, userShortcuts, userTheme } from "./userConfig"
 
 export function definePalette(def: PaletteDef): PaletteDef {
   return def
@@ -95,10 +96,25 @@ export function multiFuzzyScore(haystack: string, parts: string[]): number {
   return total
 }
 
+function applyUserOverrides(items: Item[]): Item[] {
+  const shortcuts = userShortcuts()
+  const aliases = userAliases()
+  return items.map((i) => {
+    const extra = aliases[i.title]
+    return {
+      ...i,
+      shortcut: i.shortcut ?? shortcuts[i.title],
+      aliases: extra ? [...(i.aliases ?? []), ...extra] : i.aliases,
+    }
+  })
+}
+
 export async function runPalette(def: PaletteDef): Promise<void> {
-  const theme = resolveTheme(def.theme)
+  const baseTheme = resolveTheme(def.theme)
+  const theme = { ...baseTheme, ...(userTheme() ?? {}) }
   const colors = makeColors(theme)
-  const items: Item[] = typeof def.items === "function" ? await def.items() : def.items
+  const raw: Item[] = typeof def.items === "function" ? await def.items() : def.items
+  const items: Item[] = applyUserOverrides(raw)
 
   const cmdFile = process.env.TMUX_PALETTE_CMD
   const title = def.title ?? "Commands"

@@ -8,6 +8,8 @@ Type a few letters, pick a command, hit enter — split a pane, jump to a window
 detach a session, whatever. Designed to be easy to extend with your own
 palettes.
 
+https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593
+
 ## Install
 
 <details>
@@ -32,12 +34,11 @@ Follow steps in order. Confirm with the user before any change that modifies the
 - Otherwise: `git clone https://github.com/eduwass/tmux-palette <path> && cd <path> && bun install`.
 
 3. Bind it to a tmux key (required — the palette doesn't open without one)
-- Suggested default: `prefix + C-p`. Ask the user if they want a different key.
-- Append to `~/.tmux.conf` (create it if missing):
-  `bind <key> run-shell "<absolute-path-to-clone>/bin/tmux-palette.sh"`
+- Default suggestion: `bind -n C-Space run-shell "<absolute-path>/bin/tmux-palette.sh"` (no-prefix, opens with Ctrl+Space — Raycast-feel). Ask the user if they want a different key.
+- Append the bind line to `~/.tmux.conf` (create it if missing).
 - Run `tmux source-file ~/.tmux.conf` to reload (or tell them to do it).
 
-4. Match the palette to their terminal theme (optional but nice)
+4. Match the palette to their terminal theme (optional)
 Ask: "Want the palette colors to match your terminal's theme?"
 
 If yes, detect their terminal:
@@ -49,7 +50,7 @@ If yes, detect their terminal:
   - WezTerm:    ~/.wezterm.lua or ~/.config/wezterm/wezterm.lua
   - iTerm2 / others: ask the user for hex codes; their configs are hard to parse.
 - Extract: background → `bg`, foreground → `fg`, cursor color → `accent`, selection bg → `selected`. Derive `panel` (slightly lighter than bg) and `muted` (fg dimmed).
-- Edit every `definePalette({ ... })` call in `src/palettes/*.ts` to include `theme: { bg, panel, selected, fg, muted, accent }`.
+- Write `~/.config/tmux-palette/theme.json` with `{ bg, panel, selected, fg, muted, accent }`. The palette reads this at runtime; do NOT edit source files.
 - Report the colors you picked.
 
 5. Test
@@ -58,10 +59,12 @@ Tell the user to press their binding. Ask what they see.
 6. Offer follow-ups
 When it works, ask:
 - "Want to change the binding?" — revisit step 3.
-- "Want to add a custom command?" — show them the Item shape (icon, title, action, etc), ask what they want, append it to src/palettes/commands.ts. Action types: { tmux: "..." }, { shell: "..." }, { palette: "name" }, { run: (ctx) => ... }.
+- "Want to add custom commands?" — write items to `~/.config/tmux-palette/commands.json` (array of Items). Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "palette": "name" }`. Do NOT edit source files.
+- "Want custom shortcut labels?" — write `~/.config/tmux-palette/shortcuts.json` mapping item titles to label strings (useful when the user's binding is at the terminal layer and tmux can't see it).
 - "Want to explore the sub-palettes?" — they already have Find Pane and Move Pane to... in the default palette.
 
 Constraints
+- Prefer `~/.config/tmux-palette/*.json` over source edits. The user's config survives upstream pulls; source edits don't.
 - Do not push to git or modify files outside the user's home directory.
 - Do not auto-install Bun or any other system package.
 - If anything fails, stop and explain what went wrong.
@@ -80,13 +83,17 @@ cd ~/Sites/tmux-palette
 bun install
 ```
 
-Bind it to a tmux key in your `.tmux.conf`:
+Bind it to a tmux key in your `.tmux.conf` — `Ctrl+Space` gives the most "Raycast-feel" since it skips the prefix:
 
 ```tmux
-bind C-p run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh"
+bind -n C-Space run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh"
 ```
 
-(Or `bind-key -n C-p ...` to make it a global keybinding without a prefix.)
+Or if you'd rather go through the tmux prefix:
+
+```tmux
+bind p run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh"
+```
 
 Reload: `tmux source-file ~/.tmux.conf` and hit your binding.
 
@@ -106,20 +113,85 @@ Initials of multi-word titles are matched automatically. Type `nw` for "New
 Window", `cs` for "Choose Session", `sh` for "Split Horizontal", etc. These
 aren't displayed in the UI — they just work.
 
-### Manual aliases
+## Customize
 
-If you want a chip displayed in the row, add it explicitly:
+Drop-in user config lives in `~/.config/tmux-palette/`. Edit JSON files here
+to add commands, custom shortcut labels, theme overrides, or extra alias
+chips — no source edits, no fork, survives upstream pulls.
 
-```ts
-{ icon: "", title: "Split Horizontal", aliases: ["sh"], action: { tmux: "..." } }
+### `shortcuts.json` — custom shortcut labels
+
+When your terminal has a key-remap layer (Ghostty / iTerm2 / Karabiner) that
+translates something like `Cmd+D` into a tmux binding, tmux only sees the
+tmux side and doesn't know the original key. Use this to show what you
+actually press:
+
+```json
+{
+  "Split Horizontal": "Cmd+D",
+  "Find Pane": "Cmd+Shift+P",
+  "Choose Session": "Cmd+S"
+}
 ```
 
-Now `sh` shows as a small badge next to the title.
+Keys are item titles; values are whatever text you want on the right side.
 
-## Extending
+### `commands.json` — your own items
 
-The default palette lives in `src/palettes/commands.ts`. To add your own
-commands, edit that file (or fork). Each item is:
+Append items to the `commands` palette without editing source. Same shape
+as items in `src/palettes/commands.ts`:
+
+```json
+[
+  {
+    "icon": "",
+    "title": "Toggle Diff Viewer",
+    "category": "Tools",
+    "action": { "tmux": "run-shell '/path/to/script.sh'" }
+  },
+  {
+    "icon": "󱂬",
+    "title": "Open Project in Cursor",
+    "category": "Tools",
+    "action": { "shell": "cursor /path/to/project" }
+  }
+]
+```
+
+Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "palette": "find-pane" }`.
+
+### `aliases.json` — extra visible alias chips
+
+```json
+{
+  "Split Horizontal": ["sh"],
+  "Find Pane": ["fp"]
+}
+```
+
+Auto-aliases (initials like `nw`) still work for free, invisibly.
+
+### `theme.json` — color overrides
+
+```json
+{
+  "bg": "#1a1b26",
+  "panel": "#16161e",
+  "selected": "#283457",
+  "fg": "#c0caf5",
+  "muted": "#565f89",
+  "accent": "#7aa2f7"
+}
+```
+
+Applies to all palettes. Built-in themes (`shades-of-purple` default,
+`dracula`, `tokyo-night`, `minimal`) live in `src/theme.ts`.
+
+## Extending (deeper)
+
+For things JSON can't express — custom palettes, custom row rendering,
+dynamic item generators — edit the TS source. Items in
+`src/palettes/commands.ts` have this shape:
 
 ```ts
 {
@@ -145,24 +217,6 @@ commands, edit that file (or fork). Each item is:
 `{ tmux }` is special: it dispatches *after* the popup closes, so interactive
 tmux prompts (`confirm-before`, `command-prompt`) actually get keyboard
 input. Without this, prompts hang because the popup still owns stdin.
-
-## Themes
-
-Built-in themes: `midnight-purple` (default), `dracula`, `tokyo-night`,
-`minimal`. Set on the palette:
-
-```ts
-definePalette({ theme: "dracula", items: [...] })
-```
-
-Or define your own:
-
-```ts
-definePalette({
-  theme: { bg: "#000", panel: "#111", selected: "#222", fg: "#fff", muted: "#888", accent: "#0ff" },
-  items: [...]
-})
-```
 
 ## How it works (the trick)
 

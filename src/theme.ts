@@ -1,6 +1,6 @@
 import type { Colors, Theme } from "./types"
 
-export const midnightPurple: Theme = {
+export const shadesOfPurple: Theme = {
   bg: "#1e1d40",
   panel: "#2d2b55",
   selected: "#504d7a",
@@ -37,14 +37,14 @@ export const minimal: Theme = {
 }
 
 export const themes: Record<string, Theme> = {
-  "midnight-purple": midnightPurple,
+  "shades-of-purple": shadesOfPurple,
   dracula,
   "tokyo-night": tokyoNight,
   minimal,
 }
 
 export function resolveTheme(theme: Theme | string | undefined): Theme {
-  if (!theme) return midnightPurple
+  if (!theme) return shadesOfPurple
   if (typeof theme === "string") {
     const found = themes[theme]
     if (!found) throw new Error(`Unknown theme: ${theme}. Known: ${Object.keys(themes).join(", ")}`)
