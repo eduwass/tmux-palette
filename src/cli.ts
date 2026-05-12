@@ -1,9 +1,11 @@
 import { runPalette } from "./palette"
 import { commands } from "./palettes/commands"
+import { movePane } from "./palettes/move-pane"
 import type { Item, PaletteDef } from "./types"
 
 const palettes: Record<string, PaletteDef> = {
   commands,
+  "move-pane": movePane,
 }
 
 const name = process.argv[2] || "commands"
