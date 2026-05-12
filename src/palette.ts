@@ -120,15 +120,17 @@ export async function runPalette(def: PaletteDef): Promise<void> {
   }
 
   function visible(): Item[] {
-    const needle = filter.trim().toLowerCase()
+    const needle = filter.trim()
     if (!needle) return items
+    if (def.filter) return def.filter(items, needle)
+    const needleLower = needle.toLowerCase()
     return items.filter((c) => {
       const auto = autoAlias(c.title)
       const haystack = [c.title, c.description, c.category, c.shortcut, ...(c.aliases ?? []), auto]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-      return needle.split(/\s+/).every((p) => haystack.includes(p))
+      return needleLower.split(/\s+/).every((p) => haystack.includes(p))
     })
   }
 
@@ -152,6 +154,14 @@ export async function runPalette(def: PaletteDef): Promise<void> {
     const id = `row-${rowIdCounter++}`
     listChildren.push(id)
     if (active) selectedRowId = id
+
+    if (def.renderItem) {
+      const custom = def.renderItem(item, { theme, active, id, renderer })
+      if (isSelectable(item)) {
+        ;(custom as any).onMouseDown = () => { void activate(item) }
+      }
+      return custom as BoxRenderable
+    }
 
     const row = new BoxRenderable(renderer, {
       id,
@@ -231,9 +241,40 @@ export async function runPalette(def: PaletteDef): Promise<void> {
     return box
   }
 
+  function isSelectable(item: Item | undefined): boolean {
+    return !!item && item.selectable !== false
+  }
+
+  function firstSelectable(vis: Item[]): number {
+    for (let i = 0; i < vis.length; i++) if (isSelectable(vis[i])) return i
+    return -1
+  }
+
+  function lastSelectable(vis: Item[]): number {
+    for (let i = vis.length - 1; i >= 0; i--) if (isSelectable(vis[i])) return i
+    return -1
+  }
+
+  function step(vis: Item[], from: number, dir: 1 | -1): number {
+    if (!vis.length) return 0
+    let i = from
+    for (let n = 0; n < vis.length; n++) {
+      i = (i + dir + vis.length) % vis.length
+      if (isSelectable(vis[i])) return i
+    }
+    return from
+  }
+
+  function clampSelected(vis: Item[]): void {
+    if (selected < 0 || selected >= vis.length || !isSelectable(vis[selected])) {
+      const first = firstSelectable(vis)
+      selected = first >= 0 ? first : 0
+    }
+  }
+
   function render(): void {
     const vis = visible()
-    selected = Math.min(selected, Math.max(0, vis.length - 1))
+    clampSelected(vis)
 
     searchText.content = filter ? ` ${filter}` : " Search"
     ;(searchText as any).fg = filter ? theme.fg : theme.muted
@@ -265,17 +306,21 @@ export async function runPalette(def: PaletteDef): Promise<void> {
     if (key.name === "escape") return exit()
     if (key.name === "return") {
       const item = vis[selected]
-      if (item) void activate(item)
+      if (item && isSelectable(item)) void activate(item)
       return
     }
     if (key.name === "up" || (key.ctrl && key.name === "p")) {
-      if (vis.length) selected = (selected - 1 + vis.length) % vis.length
+      selected = step(vis, selected, -1)
     } else if (key.name === "down" || (key.ctrl && key.name === "n")) {
-      if (vis.length) selected = (selected + 1) % vis.length
+      selected = step(vis, selected, 1)
     } else if (key.name === "pageup") {
-      selected = Math.max(0, selected - 10)
+      let s = selected
+      for (let n = 0; n < 10; n++) s = step(vis, s, -1)
+      selected = s
     } else if (key.name === "pagedown") {
-      selected = Math.min(Math.max(0, vis.length - 1), selected + 10)
+      let s = selected
+      for (let n = 0; n < 10; n++) s = step(vis, s, 1)
+      selected = s
     } else if (key.name === "backspace") {
       filter = filter.slice(0, -1)
       selected = 0

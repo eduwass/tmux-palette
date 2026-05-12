@@ -1,10 +1,12 @@
 import { runPalette } from "./palette"
 import { commands } from "./palettes/commands"
+import { findPane } from "./palettes/find-pane"
 import { movePane } from "./palettes/move-pane"
 import type { Item, PaletteDef } from "./types"
 
 const palettes: Record<string, PaletteDef> = {
   commands,
+  "find-pane": findPane,
   "move-pane": movePane,
 }
 
