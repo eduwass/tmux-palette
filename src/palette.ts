@@ -1,5 +1,6 @@
 import { writeFileSync } from "node:fs"
 import { dispatchToFile } from "./dispatch"
+import { recordRecent } from "./recents"
 import { defaultFilter } from "./fuzzy"
 import {
   buildRows,
@@ -309,6 +310,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   }
 
   async function activate(item: Item): Promise<void> {
+    recordRecent(item.title)
     if ("palette" in item.action && loader) {
       await navigateTo(item.action.palette)
       return

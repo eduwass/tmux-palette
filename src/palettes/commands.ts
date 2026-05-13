@@ -1,8 +1,19 @@
 import { definePalette } from "../palette"
+import { getRecent } from "../recents"
+import type { Item } from "../types"
 
-export const commands = definePalette({
-  title: "Commands",
-  items: [
+function recentItems(staticItems: Item[]): Item[] {
+  const byTitle = new Map(staticItems.map((i) => [i.title, i]))
+  const out: Item[] = []
+  for (const title of getRecent()) {
+    const found = byTitle.get(title)
+    if (!found) continue
+    out.push({ ...found, category: "Recent", showWhen: "no-filter" })
+  }
+  return out
+}
+
+const staticItems: Item[] = [
     { icon: "󰍉", category: "Panes", title: "Find Pane",
       action: { palette: "find-pane" } },
     { icon: "", category: "Panes", title: "Split Horizontal", description: "side by side",
@@ -69,5 +80,12 @@ export const commands = definePalette({
 
     { icon: "", category: "Appearance", title: "Switch Theme...", description: "browse + live-preview bundled themes",
       action: { palette: "themes" } },
+]
+
+export const commands = definePalette({
+  title: "Commands",
+  items: () => [
+    ...recentItems(staticItems),
+    ...staticItems,
   ],
 })
