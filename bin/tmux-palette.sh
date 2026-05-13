@@ -15,14 +15,18 @@ EXTRA_ARGS=("$@")
 CH="$($TMUX_BIN display-message -p '#{client_height}' 2>/dev/null || echo 24)"
 CW="$($TMUX_BIN display-message -p '#{client_width}' 2>/dev/null || echo 80)"
 
-# Ask the palette how big it wants to be. cli.ts emits a tab-separated
-# triple: rows<TAB>width<TAB>padX, with defaults + sizing.json applied.
-# Passing client dims lets sizing.json trigger fullscreen mobile mode.
-MEASURE="$(bun "$DIR/src/cli.ts" "$PALETTE" --measure "--cw=$CW" "--ch=$CH" "${EXTRA_ARGS[@]}" 2>/dev/null || echo "20	90	3")"
-IFS=$'\t' read -r WANT_H WANT_W WANT_PADX <<< "$MEASURE"
+# Ask the palette how big it wants to be. cli.ts emits tab-separated
+# rows<TAB>width<TAB>padX<TAB>border<TAB>bodyStyle<TAB>borderStyle,
+# with defaults + sizing.json applied. Passing client dims lets
+# sizing.json trigger fullscreen mobile mode.
+MEASURE="$(bun "$DIR/src/cli.ts" "$PALETTE" --measure "--cw=$CW" "--ch=$CH" "${EXTRA_ARGS[@]}" 2>/dev/null || echo "20	90	3	none	default	default")"
+IFS=$'\t' read -r WANT_H WANT_W WANT_PADX WANT_BORDER WANT_BODY_STYLE WANT_BORDER_STYLE <<< "$MEASURE"
 WANT_H="${WANT_H:-20}"
 WANT_W="${WANT_W:-90}"
 WANT_PADX="${WANT_PADX:-3}"
+WANT_BORDER="${WANT_BORDER:-none}"
+WANT_BODY_STYLE="${WANT_BODY_STYLE:-default}"
+WANT_BORDER_STYLE="${WANT_BORDER_STYLE:-default}"
 
 # Cap by client size, leaving breathing room (mobile mode already
 # uses full dims, so the cap is a no-op there).
@@ -37,16 +41,30 @@ if [ "$WANT_W" -ge "$CW" ]; then H="$CH"; W="$CW"; fi
 H="${TMUX_PALETTE_HEIGHT:-$H}"
 W="${TMUX_PALETTE_WIDTH:-$W}"
 
+# Border: "none" maps to tmux's -B (no border). Anything else is passed
+# through tmux's -b <type>: single, double, heavy, rounded, padded, simple.
+# -s sets the popup body style, -S the border style — both match the
+# palette theme by default so the chrome doesn't read as stock tmux.
+BORDER_ARGS=(-B -s "$WANT_BODY_STYLE")
+if [ "$WANT_BORDER" != "none" ]; then
+  BORDER_ARGS=(-b "$WANT_BORDER" -s "$WANT_BODY_STYLE" -S "$WANT_BORDER_STYLE")
+fi
+
 # Build the final argv (palette + any forwarded flags) with shell-safe quoting.
 ARG_STR=""
 for a in "$PALETTE" "${EXTRA_ARGS[@]}"; do
   ARG_STR+=" $(printf %q "$a")"
 done
 
+# BORDERED=1 tells the palette to skip its own top/bottom pad rows
+# (the tmux border replaces them visually, otherwise it looks double-padded).
+BORDERED=0
+[ "$WANT_BORDER" != "none" ] && BORDERED=1
+
 # TMUX_PALETTE_BIN is set so { palette: "..." } subpalette chaining knows
 # how to invoke ourselves — without it we'd assume "tmux-palette" is on PATH.
-$TMUX_BIN display-popup -B -w "$W" -h "$H" -E \
-  "TMUX_PALETTE_CMD='$CMD_FILE' TMUX_PALETTE_BIN='$0' TMUX_PALETTE_PADX='$WANT_PADX' exec bun '$DIR/src/cli.ts'$ARG_STR"
+$TMUX_BIN display-popup "${BORDER_ARGS[@]}" -w "$W" -h "$H" -E \
+  "TMUX_PALETTE_CMD='$CMD_FILE' TMUX_PALETTE_BIN='$0' TMUX_PALETTE_PADX='$WANT_PADX' TMUX_PALETTE_BORDERED='$BORDERED' exec bun '$DIR/src/cli.ts'$ARG_STR"
 
 if [ -s "$CMD_FILE" ]; then
   CMD="$(cat "$CMD_FILE")"

@@ -1,5 +1,7 @@
 import { writeFileSync } from "node:fs"
+import { resolveTheme } from "./theme"
 import type { Action } from "./types"
+import { userSizing, userTheme } from "./userConfig"
 
 // Encodes an Action into the line the bash wrapper reads after the popup
 // closes. Two prefixes:
@@ -12,8 +14,17 @@ export function encodeAction(action: Action): string | null {
   if ("shell" in action) return `shell:${action.shell}`
   if ("popup" in action) {
     // Sugar for "open a tmux popup running this command, close on exit".
-    // 80% × 80% centered with a border so it stands out from the host pane.
-    return `tmux:display-popup -E -h 80% -w 80% ${action.popup}`
+    // 80% × 80% centered, border + styles from sizing.json (defaults
+    // derived from theme so the popup matches the palette colors).
+    const sizing = userSizing()
+    const theme = { ...resolveTheme(undefined), ...(userTheme() ?? {}) }
+    const popupBorder = sizing.popupBorder ?? "none"
+    const bodyStyle = sizing.popupBodyStyle ?? `bg=${theme.panel}`
+    const borderStyle = sizing.popupBorderStyle ?? `fg=${theme.accent},bg=default`
+    const borderArg = popupBorder === "none"
+      ? `-B -s '${bodyStyle}'`
+      : `-b ${popupBorder} -s '${bodyStyle}' -S '${borderStyle}'`
+    return `tmux:display-popup -E ${borderArg} -h 80% -w 80% ${action.popup}`
   }
   if ("palette" in action) {
     const bin = process.env.TMUX_PALETTE_BIN ?? "tmux-palette"

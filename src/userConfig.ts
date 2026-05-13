@@ -54,6 +54,20 @@ export type Sizing = {
   // Below this client width the popup goes fullscreen (edge-to-edge,
   // tighter padding). Defaults to 80 — set to 0 to disable.
   mobileWidth?: number
+  // Main palette border: none (default) | single | double | heavy |
+  // rounded | padded | simple. Forwarded to tmux display-popup -b.
+  border?: string
+  // tmux style for the popup body (e.g. "bg=#1a1b26"). Defaults to
+  // bg=<theme.panel> so the popup body matches the palette colors.
+  bodyStyle?: string
+  // tmux style for the popup border (e.g. "fg=#7aa2f7"). Defaults to
+  // fg=<theme.accent> so the border matches the palette colors.
+  borderStyle?: string
+  // Border for { popup } action popups. Defaults to "none".
+  popupBorder?: string
+  // Styles for { popup } action popups. Default to theme.panel / accent.
+  popupBodyStyle?: string
+  popupBorderStyle?: string
 }
 let _sizing: Sizing | null = null
 export function userSizing(): Sizing {

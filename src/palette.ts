@@ -128,8 +128,13 @@ export async function runPalette(def: PaletteDef): Promise<void> {
     }
 
     const rows = buildRows(vis, grouped, filter.length > 0)
-    // Chrome rows: top pad + header + search + spacer + footer spacer + footer + bottom pad = 7
-    const listHeight = Math.max(1, height - 7)
+    // Chrome rows: header + search + spacer + footer spacer + footer = 5,
+    // plus a top + bottom blank pad when there's no tmux border (the
+    // border replaces those pads visually, so skipping them avoids the
+    // popup looking double-padded).
+    const bordered = process.env.TMUX_PALETTE_BORDERED === "1"
+    const chromeRows = bordered ? 5 : 7
+    const listHeight = Math.max(1, height - chromeRows)
     scroll = clampScroll(rows, listHeight, selected, scroll)
 
     const padX = Math.max(0, Number(process.env.TMUX_PALETTE_PADX) || 3)
@@ -137,24 +142,38 @@ export async function runPalette(def: PaletteDef): Promise<void> {
     const blank = `${colors.panel}${" ".repeat(width)}${colors.reset}`
 
     const header = composeHeader(title, width, padX, bodyWidth, colors)
-    escAction = { y: 2, xStart: header.escX1, xEnd: header.escX2 }
+    // Mouse y is 1-indexed inside the popup. With no border the header is on
+    // row 2 (after top pad); bordered, top pad is gone so it shifts to row 1.
+    const headerY = bordered ? 1 : 2
+    escAction = { y: headerY, xStart: header.escX1, xEnd: header.escX2 }
 
-    const body = composeListBody(rows, scroll, listHeight, selected, bodyWidth, padX, colors,
+    // List rows start after the chrome above them: top_pad? + header + search + spacer.
+    const listStartY = bordered ? 4 : 5
+    const body = composeListBody(rows, scroll, listHeight, selected, bodyWidth, padX, colors, listStartY,
       (row, sel) => renderRowContent(row, sel, bodyWidth))
     rowActions = body.rowActions
 
     const footerText = buildFooterText(vis.filter(isSelectable).length, emptyText)
 
-    const lines = [
-      blank,
-      header.line,
-      composeSearch(filter, padX, bodyWidth, colors),
-      blank,
-      ...body.lines,
-      blank,
-      composeFooter(footerText, padX, bodyWidth, colors),
-      blank,
-    ]
+    const lines = bordered
+      ? [
+          header.line,
+          composeSearch(filter, padX, bodyWidth, colors),
+          blank,
+          ...body.lines,
+          blank,
+          composeFooter(footerText, padX, bodyWidth, colors),
+        ]
+      : [
+          blank,
+          header.line,
+          composeSearch(filter, padX, bodyWidth, colors),
+          blank,
+          ...body.lines,
+          blank,
+          composeFooter(footerText, padX, bodyWidth, colors),
+          blank,
+        ]
 
     // Synchronized output + cursor-home (no clear) so the frame swaps
     // atomically without a blank flash, even when arrow keys repeat fast.

@@ -2,8 +2,9 @@ import { runPalette } from "./palette"
 import { commands } from "./palettes/commands"
 import { findPane } from "./palettes/find-pane"
 import { movePane } from "./palettes/move-pane"
+import { resolveTheme } from "./theme"
 import type { Item, PaletteDef } from "./types"
-import { userCommands, userHidden, userPalette, userSizing } from "./userConfig"
+import { userCommands, userHidden, userPalette, userSizing, userTheme } from "./userConfig"
 
 const DEFAULT_WIDTH = 90
 const DEFAULT_MAX_HEIGHT = 28
@@ -90,10 +91,22 @@ if (process.argv.includes("--measure")) {
   const width = sizing.width ?? DEFAULT_WIDTH
   const padX = sizing.padX ?? DEFAULT_PAD_X
   const mobileWidth = sizing.mobileWidth ?? DEFAULT_MOBILE_WIDTH
+  const border = sizing.border ?? "none"
   const cwArg = process.argv.find((a) => a.startsWith("--cw="))
   const chArg = process.argv.find((a) => a.startsWith("--ch="))
   const cw = cwArg ? Number(cwArg.slice(5)) : 0
   const ch = chArg ? Number(chArg.slice(5)) : 0
+
+  // Derive tmux body/border styles from the resolved theme so the
+  // popup background and border match the palette instead of using
+  // tmux's defaults (which read as plain white on a dark popup).
+  // Border bg=default uses the terminal background so rounded corners
+  // blend into the surrounding terminal instead of leaking either the
+  // panel color outward or the terminal black inward.
+  const baseTheme = resolveTheme(def.theme)
+  const theme = { ...baseTheme, ...(userTheme() ?? {}) }
+  const bodyStyle = sizing.bodyStyle ?? `bg=${theme.panel}`
+  const borderStyle = sizing.borderStyle ?? `fg=${theme.accent},bg=default`
 
   const desired = items.length + cats + 7
   let rows = Math.min(desired, maxHeight)
@@ -107,7 +120,7 @@ if (process.argv.includes("--measure")) {
     finalPadX = 1
   }
 
-  console.log(`${rows}\t${finalWidth}\t${finalPadX}`)
+  console.log(`${rows}\t${finalWidth}\t${finalPadX}\t${border}\t${bodyStyle}\t${borderStyle}`)
   process.exit(0)
 }
 

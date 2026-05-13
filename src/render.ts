@@ -139,6 +139,7 @@ export function composeListBody(
   bodyWidth: number,
   padX: number,
   colors: Colors,
+  startY: number,
   renderRow: (row: Row, isSelected: boolean) => string,
 ): { lines: string[]; rowActions: RowAction[] } {
   const lines: string[] = []
@@ -148,7 +149,7 @@ export function composeListBody(
   for (let i = scroll; i < end; i++) {
     const row = rows[i]!
     const isSelected = row.kind === "item" && row.itemIndex === selected
-    if (row.kind === "item") rowActions.push({ y: 5 + (i - scroll), itemIndex: row.itemIndex })
+    if (row.kind === "item") rowActions.push({ y: startY + (i - scroll), itemIndex: row.itemIndex })
     lines.push(renderListRow(row, isSelected, bodyWidth, padX, colors, renderRow))
   }
   const blank = `${colors.panel}${" ".repeat(bodyWidth + padX * 2)}${colors.reset}`

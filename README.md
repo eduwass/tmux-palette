@@ -12,14 +12,14 @@ https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593
 
 ## Highlights
 
-- ⚡ **~30ms cold start** — feels native, not slow
-- 🧩 **Custom palettes** — define your own with [a single JSON file](#custom-palettes-rcfgtmux-palettepalettesnamejson), bind to any key
-- 🙈 **Hide built-ins** — declutter the default palette via [`hidden.json`](#hiddenjson--hide-built-in-items)
-- 📱 **Mobile-aware** — [auto-fullscreens](#sizingjson--popup-dimensions) on narrow terminals (Moshi / Blink on iOS)
-- 🎨 **Themeable** — built-ins (`shades-of-purple`, `dracula`, `tokyo-night`, `minimal`) or [your own colors](#themejson--color-overrides)
-- 🪟 **Popup launcher** — bind palette items to spawn `htop`, log viewers, etc. in their own tmux popup
-- 🤖 **AI-agent install** — paste a prompt into Claude Code / Codex / opencode and it's done
-- 🔌 **No fork required** — every customization lives in `~/.config/tmux-palette/*.json`
+- **~30ms cold start** — feels native, not slow
+- **Custom palettes** — define your own with [a single JSON file](#custom-palettes-rcfgtmux-palettepalettesnamejson), bind to any key
+- **Hide built-ins** — declutter the default palette via [`hidden.json`](#hiddenjson--hide-built-in-items)
+- **Mobile-aware** — [auto-fullscreens](#sizingjson--popup-dimensions) on narrow terminals (Moshi / Blink on iOS)
+- **Themeable** — built-ins (`shades-of-purple`, `dracula`, `tokyo-night`, `minimal`) or [your own colors](#themejson--color-overrides)
+- **Popup launcher** — bind palette items to spawn `htop`, log viewers, etc. in their own tmux popup
+- **AI-agent install** — paste a prompt into Claude Code / Codex / opencode and it's done
+- **No fork required** — every customization lives in `~/.config/tmux-palette/*.json`
 
 ## Install
 
@@ -222,14 +222,16 @@ Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "popup": "..." }`, `
 (80% × 80%, closes when the command exits). Handy for log viewers,
 htop, btop, less, fzf-driven tools, etc.
 
-### `sizing.json` — popup dimensions
+### `sizing.json` — popup dimensions and borders
 
 ```json
 {
   "maxHeight": 28,
   "width": 90,
   "padX": 3,
-  "mobileWidth": 80
+  "mobileWidth": 80,
+  "border": "none",
+  "popupBorder": "none"
 }
 ```
 
@@ -240,8 +242,14 @@ horizontal padding inside the popup.
 `mobileWidth` is the client-width threshold for auto-fullscreen mode:
 when the terminal is narrower than this many columns (iOS terminals
 like Blink or Moshi typically run 50-60 cols), the popup goes
-edge-to-edge with `padX=1` so it doesn't waste any screen real estate.
-Defaults to 80, set to 0 to disable.
+edge-to-edge with `padX=1`. Defaults to 80, set to 0 to disable.
+
+`border` is the main palette border, `popupBorder` is the border for
+`{ "popup": "..." }` action popups. Both default to `none`. Accepted
+values: `none`, `single`, `double`, `heavy`, `padded`, `simple` —
+passed straight to `tmux display-popup -b`. `rounded` works too but
+its corner glyphs leave small visual gaps against the surrounding
+terminal, so it's not recommended.
 
 ### `theme.json` — color overrides
 
