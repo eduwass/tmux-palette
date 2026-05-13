@@ -10,6 +10,11 @@ import type { Action } from "./types"
 export function encodeAction(action: Action): string | null {
   if ("tmux" in action) return `tmux:${action.tmux}`
   if ("shell" in action) return `shell:${action.shell}`
+  if ("popup" in action) {
+    // Sugar for "open a tmux popup running this command, close on exit".
+    // 80% × 80% centered with a border so it stands out from the host pane.
+    return `tmux:display-popup -E -h 80% -w 80% ${action.popup}`
+  }
   if ("palette" in action) {
     const bin = process.env.TMUX_PALETTE_BIN ?? "tmux-palette"
     return `tmux:run-shell -b '${bin} ${action.palette}'`

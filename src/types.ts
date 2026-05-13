@@ -2,6 +2,7 @@ export type Action =
   | { tmux: string }
   | { shell: string }
   | { palette: string }
+  | { popup: string }
   | { run: (ctx: ActionContext) => void | Promise<void> }
 
 export interface ActionContext {

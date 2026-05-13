@@ -10,6 +10,17 @@ palettes.
 
 https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593
 
+## Highlights
+
+- ⚡ **~30ms cold start** — feels native, not slow
+- 🧩 **Custom palettes** — define your own with [a single JSON file](#custom-palettes-rcfgtmux-palettepalettesnamejson), bind to any key
+- 🙈 **Hide built-ins** — declutter the default palette via [`hidden.json`](#hiddenjson--hide-built-in-items)
+- 📱 **Mobile-aware** — [auto-fullscreens](#sizingjson--popup-dimensions) on narrow terminals (Moshi / Blink on iOS)
+- 🎨 **Themeable** — built-ins (`shades-of-purple`, `dracula`, `tokyo-night`, `minimal`) or [your own colors](#themejson--color-overrides)
+- 🪟 **Popup launcher** — bind palette items to spawn `htop`, log viewers, etc. in their own tmux popup
+- 🤖 **AI-agent install** — paste a prompt into Claude Code / Codex / opencode and it's done
+- 🔌 **No fork required** — every customization lives in `~/.config/tmux-palette/*.json`
+
 ## Install
 
 <details>
@@ -59,7 +70,7 @@ Tell the user to press their binding. Ask what they see.
 6. Offer follow-ups
 When it works, ask:
 - "Want to change the binding?" — revisit step 3.
-- "Want to add custom commands?" — write items to `~/.config/tmux-palette/commands.json` (array of Items). Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "palette": "name" }`. Do NOT edit source files.
+- "Want to add custom commands?" — write items to `~/.config/tmux-palette/commands.json` (array of Items). Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "popup": "..." }`, `{ "palette": "name" }`. Do NOT edit source files.
 - "Want custom shortcut labels?" — write `~/.config/tmux-palette/shortcuts.json` mapping item titles to label strings (useful when the user's binding is at the terminal layer and tmux can't see it).
 - "Want to explore the sub-palettes?" — they already have Find Pane and Move Pane to... in the default palette.
 
@@ -69,6 +80,26 @@ Constraints
 - Do not auto-install Bun or any other system package.
 - If anything fails, stop and explain what went wrong.
 ````
+
+</details>
+
+<details>
+<summary><b>Install via TPM</b> (Tmux Plugin Manager)</summary>
+
+<br/>
+
+Requires Bun: https://bun.sh
+
+Add to your `.tmux.conf`:
+
+```tmux
+set -g @plugin 'eduwass/tmux-palette'
+set -g @palette-key 'C-Space'             # optional, default: C-Space (no-prefix)
+set -g @palette-find-pane-key 'M-f'       # optional, no binding by default
+set -g @palette-move-pane-key 'M-m'       # optional, no binding by default
+```
+
+Then `prefix + I` to install. TPM clones the repo, runs `bun install` on first load, and binds the keys for you. Set `@palette-key 'off'` to skip the main binding and bind it yourself.
 
 </details>
 
@@ -99,26 +130,6 @@ Reload: `tmux source-file ~/.tmux.conf` and hit your binding.
 
 </details>
 
-<details>
-<summary><b>Install via TPM</b> (Tmux Plugin Manager)</summary>
-
-<br/>
-
-Requires Bun: https://bun.sh
-
-Add to your `.tmux.conf`:
-
-```tmux
-set -g @plugin 'eduwass/tmux-palette'
-set -g @palette-key 'C-Space'             # optional, default: C-Space (no-prefix)
-set -g @palette-find-pane-key 'M-f'       # optional, no binding by default
-set -g @palette-move-pane-key 'M-m'       # optional, no binding by default
-```
-
-Then `prefix + I` to install. TPM clones the repo, runs `bun install` on first load, and binds the keys for you. Set `@palette-key 'off'` to skip the main binding and bind it yourself.
-
-</details>
-
 ## Usage
 
 - **Type** to filter. Multi-word search is supported (`split horiz`).
@@ -127,43 +138,17 @@ Then `prefix + I` to install. TPM clones the repo, runs `bun install` on first l
 - **Esc** to cancel.
 - **Mouse** works too — click rows, scroll the wheel.
 
-### Auto-aliases
+**Auto-aliases**: initials of multi-word titles match automatically. Type `nw` for "New
+Window", `cs` for "Choose Session", `sh` for "Split Horizontal", etc.
 
-Initials of multi-word titles are matched automatically. Type `nw` for "New
-Window", `cs` for "Choose Session", `sh` for "Split Horizontal", etc. These
-aren't displayed in the UI — they just work.
+## Customize
 
-### Category hotkeys
+Drop-in user config lives in `~/.config/tmux-palette/`. One JSON file per
+concern — no source edits, no fork, survives upstream pulls.
 
-Pass `--category=<name>` to open a palette filtered to just one category.
-Useful for binding "my Tools" or "my Appearance" to a single keystroke,
-Raycast-favorites style:
+### Custom palettes (`~/.config/tmux-palette/palettes/<name>.json`)
 
-```tmux
-bind -n M-t run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh commands --category=Tools"
-bind -n M-a run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh commands --category=Appearance"
-```
-
-The popup title auto-updates to the category name and the category
-header gets hidden (since everything is the same category anyway).
-
-### `hidden.json` — hide built-in items
-
-Drop a JSON array of item titles to skip them in the main commands
-palette:
-
-```json
-["Toggle Status Bar", "Reload Config", "Toggle OpenTUI Top Bar"]
-```
-
-Items still appear if you reference them by title in a custom palette
-(see below) — `hidden.json` is just about decluttering the default
-palette.
-
-### Custom palettes
-
-Drop a JSON file in `~/.config/tmux-palette/palettes/<name>.json` to
-define a brand-new palette. Bind any key to its name:
+Define a brand-new palette and bind any key to its name:
 
 ```tmux
 bind -n M-q run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh my-favs"
@@ -192,11 +177,100 @@ bind -n M-q run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh my-favs"
 
 All keys optional. Resolution order: `from` → `fromCategory` → `items`.
 
-## Customize
+### `hidden.json` — hide built-in items
 
-Drop-in user config lives in `~/.config/tmux-palette/`. Edit JSON files here
-to add commands, custom shortcut labels, theme overrides, or extra alias
-chips — no source edits, no fork, survives upstream pulls.
+Drop a JSON array of item titles to skip them in the main commands
+palette:
+
+```json
+["Toggle Status Bar", "Reload Config", "Toggle OpenTUI Top Bar"]
+```
+
+Items still appear if you reference them by title in a custom palette
+(see above) — `hidden.json` is just about decluttering the default.
+
+### `commands.json` — your own items
+
+Append items to the `commands` palette without editing source:
+
+```json
+[
+  {
+    "icon": "",
+    "title": "Toggle Diff Viewer",
+    "category": "Tools",
+    "action": { "tmux": "run-shell '/path/to/script.sh'" }
+  },
+  {
+    "icon": "󱂬",
+    "title": "Open Project in Cursor",
+    "category": "Tools",
+    "action": { "shell": "cursor /path/to/project" }
+  },
+  {
+    "icon": "",
+    "title": "htop",
+    "category": "Tools",
+    "action": { "popup": "htop" }
+  }
+]
+```
+
+Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "popup": "..." }`, `{ "palette": "find-pane" }`.
+
+`{ "popup": "htop" }` opens the given command in a centered tmux popup
+(80% × 80%, closes when the command exits). Handy for log viewers,
+htop, btop, less, fzf-driven tools, etc.
+
+### `sizing.json` — popup dimensions
+
+```json
+{
+  "maxHeight": 28,
+  "width": 90,
+  "padX": 3,
+  "mobileWidth": 80
+}
+```
+
+All keys optional. `maxHeight` caps how tall the popup gets when you
+have lots of commands. `width` is the fixed popup width. `padX` is the
+horizontal padding inside the popup.
+
+`mobileWidth` is the client-width threshold for auto-fullscreen mode:
+when the terminal is narrower than this many columns (iOS terminals
+like Blink or Moshi typically run 50-60 cols), the popup goes
+edge-to-edge with `padX=1` so it doesn't waste any screen real estate.
+Defaults to 80, set to 0 to disable.
+
+### `theme.json` — color overrides
+
+```json
+{
+  "bg": "#1a1b26",
+  "panel": "#16161e",
+  "selected": "#283457",
+  "fg": "#c0caf5",
+  "muted": "#565f89",
+  "accent": "#7aa2f7"
+}
+```
+
+Applies to all palettes. Built-in themes (`shades-of-purple` default,
+`dracula`, `tokyo-night`, `minimal`) live in `src/theme.ts`.
+
+### Category hotkeys
+
+Pass `--category=<name>` to open the main palette filtered to one
+category, Raycast-favorites style:
+
+```tmux
+bind -n M-t run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh commands --category=Tools"
+bind -n M-a run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh commands --category=Appearance"
+```
+
+The popup title auto-updates to the category name and the category
+header gets hidden (since everything is the same category anyway).
 
 ### `shortcuts.json` — custom shortcut labels
 
@@ -215,30 +289,6 @@ actually press:
 
 Keys are item titles; values are whatever text you want on the right side.
 
-### `commands.json` — your own items
-
-Append items to the `commands` palette without editing source. Same shape
-as items in `src/palettes/commands.ts`:
-
-```json
-[
-  {
-    "icon": "",
-    "title": "Toggle Diff Viewer",
-    "category": "Tools",
-    "action": { "tmux": "run-shell '/path/to/script.sh'" }
-  },
-  {
-    "icon": "󱂬",
-    "title": "Open Project in Cursor",
-    "category": "Tools",
-    "action": { "shell": "cursor /path/to/project" }
-  }
-]
-```
-
-Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "palette": "find-pane" }`.
-
 ### `aliases.json` — extra visible alias chips
 
 ```json
@@ -250,47 +300,10 @@ Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "palette": "find-pan
 
 Auto-aliases (initials like `nw`) still work for free, invisibly.
 
-### `theme.json` — color overrides
-
-```json
-{
-  "bg": "#1a1b26",
-  "panel": "#16161e",
-  "selected": "#283457",
-  "fg": "#c0caf5",
-  "muted": "#565f89",
-  "accent": "#7aa2f7"
-}
-```
-
-Applies to all palettes. Built-in themes (`shades-of-purple` default,
-`dracula`, `tokyo-night`, `minimal`) live in `src/theme.ts`.
-
-### `sizing.json` — popup dimensions
-
-```json
-{
-  "maxHeight": 28,
-  "width": 90,
-  "padX": 3,
-  "mobileWidth": 80
-}
-```
-
-All keys optional. Defaults shown. `maxHeight` caps how tall the popup
-gets when you have lots of commands. `width` is the fixed popup width.
-`padX` is the horizontal padding inside the popup.
-
-`mobileWidth` is the client-width threshold for auto-fullscreen mode:
-when the terminal is narrower than this many columns (iOS terminals
-like Blink or Moshi typically run 50-60 cols), the popup goes
-edge-to-edge with `padX=1` so it doesn't waste any screen real estate.
-Defaults to 80, set to 0 to disable.
-
 ## Extending (deeper)
 
-For things JSON can't express — custom palettes, custom row rendering,
-dynamic item generators — edit the TS source. Items in
+For things JSON can't express — custom row rendering, dynamic item
+generators, custom filter logic — edit the TS source. Items in
 `src/palettes/commands.ts` have this shape:
 
 ```ts
@@ -310,6 +323,7 @@ dynamic item generators — edit the TS source. Items in
 ```ts
 { tmux: "split-window -h" }     // runs `tmux <cmd>` after the popup closes
 { shell: "echo hi" }            // runs a shell command after the popup closes
+{ popup: "htop" }               // opens cmd in a centered 80% tmux popup
 { palette: "find-pane" }        // chains into another palette
 { run: (ctx) => { ... } }       // custom JS, runs in-process
 ```
