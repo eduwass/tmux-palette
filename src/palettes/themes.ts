@@ -6,6 +6,8 @@ import type { Item, Theme } from "../types"
 
 const CONFIG_FILE =
   `${process.env.XDG_CONFIG_HOME ?? `${process.env.HOME ?? ""}/.config`}/tmux-palette/theme.json`
+const CUSTOM_THEME_DOCS =
+  "https://github.com/eduwass/tmux-palette#custom-themes"
 
 function saveTheme(slug: string): void {
   mkdirSync(dirname(CONFIG_FILE), { recursive: true })
@@ -14,15 +16,24 @@ function saveTheme(slug: string): void {
 }
 
 function buildItems(): Item[] {
-  return listThemes().map((t) => ({
-    icon: "●",
-    iconColor: t.theme.accent,
-    title: t.name,
-    description: t.source === "user" ? "custom" : undefined,
-    data: t.theme,
-    aliases: [t.slug],
-    action: { apply: () => saveTheme(t.slug) },
-  }))
+  return [
+    ...listThemes().map((t) => ({
+      icon: "●",
+      iconColor: t.theme.accent,
+      title: t.name,
+      description: t.source === "user" ? "custom" : undefined,
+      data: t.theme,
+      aliases: [t.slug],
+      action: { apply: () => saveTheme(t.slug) },
+    })),
+    {
+      icon: "+",
+      title: "Add custom theme...",
+      description: "Open setup instructions",
+      aliases: ["custom", "theme", "docs"],
+      action: { shell: `open '${CUSTOM_THEME_DOCS}' || xdg-open '${CUSTOM_THEME_DOCS}'` },
+    },
+  ]
 }
 
 export const themes = definePalette({
