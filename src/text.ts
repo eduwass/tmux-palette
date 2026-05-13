@@ -19,10 +19,13 @@ function isWide(code: number): boolean {
   return WIDE_RANGES.some(([lo, hi]) => code >= lo && code <= hi)
 }
 
+function isNonDisplay(code: number): boolean {
+  return code === 0 || code < 32 || (code >= 0x7f && code < 0xa0)
+}
+
 export function charWidth(c: string): number {
   const code = c.codePointAt(0) ?? 0
-  if (code === 0) return 0
-  if (code < 32 || (code >= 0x7f && code < 0xa0)) return 0
+  if (isNonDisplay(code)) return 0
   return isWide(code) ? 2 : 1
 }
 

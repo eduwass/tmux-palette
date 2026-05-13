@@ -59,6 +59,19 @@ const NAV_KEYS: Record<string, number> = {
   "\x1b[6~": 10,
 }
 
+type MouseEvent = { button: number; x: number; y: number; kind: string }
+
+function parseMouseEvent(key: string): MouseEvent | null {
+  const m = /^\x1b\[<(?<button>\d+);(?<x>\d+);(?<y>\d+)(?<kind>[mM])/.exec(key)
+  if (!m?.groups) return null
+  return {
+    button: Number(m.groups.button),
+    x: Number(m.groups.x),
+    y: Number(m.groups.y),
+    kind: m.groups.kind!,
+  }
+}
+
 export async function runPalette(def: PaletteDef): Promise<void> {
   const baseTheme = resolveTheme(def.theme)
   const theme = { ...baseTheme, ...(userTheme() ?? {}) }
@@ -232,10 +245,10 @@ export async function runPalette(def: PaletteDef): Promise<void> {
   stdin.on("data", (key: string) => {
     const vis = visible()
     // SGR mouse: press+release sometimes arrive in one chunk on some terminals,
-    // so don't anchor to end-of-string.
-    const mouse = /^\x1b\[<(?<button>\d+);(?<x>\d+);(?<y>\d+)(?<kind>[mM])/.exec(key)
-    if (mouse?.groups) {
-      handleMouse(Number(mouse.groups.button), Number(mouse.groups.x), Number(mouse.groups.y), mouse.groups.kind!, vis)
+    // so the regex doesn't anchor to end-of-string.
+    const mouse = parseMouseEvent(key)
+    if (mouse) {
+      handleMouse(mouse.button, mouse.x, mouse.y, mouse.kind, vis)
       return
     }
     handleKey(key, vis)

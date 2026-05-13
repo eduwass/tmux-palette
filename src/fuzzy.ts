@@ -10,6 +10,12 @@ function exactMatchScore(hs: string, nd: string): number {
   return 10000 + (atBoundary ? 5000 : 0) - idx
 }
 
+function charBonus(atBoundary: boolean, consecutive: boolean): number {
+  if (atBoundary) return 50
+  if (consecutive) return 20
+  return 5
+}
+
 function subsequenceScore(hs: string, nd: string): number {
   let score = 0
   let h = 0
@@ -19,9 +25,7 @@ function subsequenceScore(hs: string, nd: string): number {
     while (h < hs.length && hs[h] !== target) h++
     if (h >= hs.length) return 0
     const atBoundary = h === 0 || BOUNDARY.test(hs[h - 1] ?? "")
-    if (atBoundary) score += 50
-    else if (h === prev + 1) score += 20
-    else score += 5
+    score += charBonus(atBoundary, h === prev + 1)
     prev = h
     h++
   }

@@ -54,15 +54,16 @@ function parsePaneLine(line: string, currentPane: string): Pane | null {
   if (!session || !windowIndex || !paneIndex) return null
   const target = `${session}:${windowIndex}.${paneIndex}`
   const title = paneTitle || `pane${paneIndex}`
+  const cmd = command || ""
   return {
     session,
     windowIndex,
     paneIndex,
     windowName: windowName || `window${windowIndex}`,
     paneTitle: title,
-    command: command || "",
+    command: cmd,
     path: path || "",
-    agent: detectAgent(command || "", title),
+    agent: detectAgent(cmd, title),
     paneActive: paneActive === "1",
     windowActive: windowActive === "1",
     isCurrent: target === currentPane,
