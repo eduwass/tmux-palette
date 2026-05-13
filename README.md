@@ -7,10 +7,13 @@ Type a few letters, pick a command, hit enter: split a pane, jump to a window,
 detach a session, open a popup tool, or switch to a custom palette. User config
 lives in `~/.config/tmux-palette/*.json`, so local changes survive repo updates.
 
-| Commands | Themes + plugins |
-|---|---|
-| Main palette for panes, windows, sessions, and built-in tmux actions. | Theme picker with live preview, plus custom palettes powered by shell commands. |
-| https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593 | https://github.com/user-attachments/assets/5edce838-9199-4123-8262-352bc47e989c |
+**Commands** — main palette for panes, windows, sessions, and built-in tmux actions.
+
+https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593
+
+**Themes + plugins** — theme picker with live preview, plus custom palettes powered by shell commands.
+
+https://github.com/user-attachments/assets/5edce838-9199-4123-8262-352bc47e989c
 
 ## Highlights
 
