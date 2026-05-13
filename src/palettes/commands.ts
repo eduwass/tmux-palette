@@ -1,8 +1,35 @@
 import { definePalette } from "../palette"
+import { tmux, tmuxQuote } from "../tmux"
+import type { Item } from "../types"
 
-export const commands = definePalette({
-  title: "Commands",
-  items: [
+function windowItems(): Item[] {
+  const fmt = [
+    "#{session_name}",
+    "#{window_index}",
+    "#{window_name}",
+    "#{window_active}",
+    "#{session_attached}",
+  ].join("\t")
+  const lines = tmux(["list-windows", "-a", "-F", fmt]).split("\n").filter(Boolean)
+  const items: Item[] = []
+  for (const line of lines) {
+    const [session, idx, name, winActive, sessAttached] = line.split("\t")
+    if (!session || !idx) continue
+    const target = `${session}:${idx}`
+    const isCurrent = winActive === "1" && sessAttached === "1"
+    items.push({
+      icon: "",
+      title: `${session} : ${name || idx}`,
+      description: isCurrent ? "current" : undefined,
+      shortcut: target,
+      showWhen: "filter",
+      action: { tmux: `switch-client -t ${tmuxQuote(target)}` },
+    })
+  }
+  return items
+}
+
+const staticItems: Item[] = [
     { icon: "󰍉", category: "Panes", title: "Find Pane",
       action: { palette: "find-pane" } },
     { icon: "", category: "Panes", title: "Split Horizontal", description: "side by side",
@@ -69,5 +96,12 @@ export const commands = definePalette({
 
     { icon: "", category: "Appearance", title: "Switch Theme...", description: "browse + live-preview bundled themes",
       action: { palette: "themes" } },
+]
+
+export const commands = definePalette({
+  title: "Commands",
+  items: () => [
+    ...staticItems,
+    ...windowItems(),
   ],
 })
