@@ -213,14 +213,20 @@ Applies to all palettes. Built-in themes (`shades-of-purple` default,
 {
   "maxHeight": 24,
   "width": 90,
-  "padX": 3
+  "padX": 3,
+  "mobileWidth": 80
 }
 ```
 
 All keys optional. Defaults shown. `maxHeight` caps how tall the popup
-gets when you have lots of commands (the popup still shrinks below this
-when there's less content). `width` is the fixed popup width. `padX` is
-the horizontal padding inside the popup.
+gets when you have lots of commands. `width` is the fixed popup width.
+`padX` is the horizontal padding inside the popup.
+
+`mobileWidth` is the client-width threshold for auto-fullscreen mode:
+when the terminal is narrower than this many columns (iOS terminals
+like Blink or Moshi typically run 50-60 cols), the popup goes
+edge-to-edge with `padX=1` so it doesn't waste any screen real estate.
+Defaults to 80, set to 0 to disable.
 
 ## Extending (deeper)
 

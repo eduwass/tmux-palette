@@ -38,7 +38,14 @@ export function userCommands(): Item[] {
   return _commands
 }
 
-export type Sizing = { width?: number; maxHeight?: number; padX?: number }
+export type Sizing = {
+  width?: number
+  maxHeight?: number
+  padX?: number
+  // Below this client width the popup goes fullscreen (edge-to-edge,
+  // tighter padding). Defaults to 80 — set to 0 to disable.
+  mobileWidth?: number
+}
 let _sizing: Sizing | null = null
 export function userSizing(): Sizing {
   if (!_sizing) _sizing = loadJSON<Sizing>("sizing.json", {})

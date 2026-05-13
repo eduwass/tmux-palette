@@ -8,21 +8,26 @@ trap 'rm -f "$CMD_FILE"' EXIT
 
 PALETTE="${1:-commands}"
 
+CH="$($TMUX_BIN display-message -p '#{client_height}' 2>/dev/null || echo 24)"
+CW="$($TMUX_BIN display-message -p '#{client_width}' 2>/dev/null || echo 80)"
+
 # Ask the palette how big it wants to be. cli.ts emits a tab-separated
 # triple: rows<TAB>width<TAB>padX, with defaults + sizing.json applied.
-MEASURE="$(bun "$DIR/src/cli.ts" "$PALETTE" --measure 2>/dev/null || echo "20	90	3")"
+# Passing client dims lets sizing.json trigger fullscreen mobile mode.
+MEASURE="$(bun "$DIR/src/cli.ts" "$PALETTE" --measure "--cw=$CW" "--ch=$CH" 2>/dev/null || echo "20	90	3")"
 IFS=$'\t' read -r WANT_H WANT_W WANT_PADX <<< "$MEASURE"
 WANT_H="${WANT_H:-20}"
 WANT_W="${WANT_W:-90}"
 WANT_PADX="${WANT_PADX:-3}"
 
-CH="$($TMUX_BIN display-message -p '#{client_height}' 2>/dev/null || echo 24)"
-CW="$($TMUX_BIN display-message -p '#{client_width}' 2>/dev/null || echo 80)"
-
-# Cap by client size, leaving breathing room.
+# Cap by client size, leaving breathing room (mobile mode already
+# uses full dims, so the cap is a no-op there).
 MAX_H=$(( CH - 2 ))
 H=$(( WANT_H > MAX_H ? MAX_H : WANT_H ))
 W=$(( WANT_W > CW - 4 ? CW - 4 : WANT_W ))
+
+# Mobile mode wants edge-to-edge: undo the breathing cap.
+if [ "$WANT_W" -ge "$CW" ]; then H="$CH"; W="$CW"; fi
 
 # Allow env override.
 H="${TMUX_PALETTE_HEIGHT:-$H}"

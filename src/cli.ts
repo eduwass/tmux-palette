@@ -8,6 +8,10 @@ import { userCommands, userSizing } from "./userConfig"
 const DEFAULT_WIDTH = 90
 const DEFAULT_MAX_HEIGHT = 24
 const DEFAULT_PAD_X = 3
+// When the client is narrower than this, the popup goes edge-to-edge.
+// 80 is the classic terminal width; anything below has too little room
+// for a padded popup to feel good. Set to 0 in sizing.json to disable.
+const DEFAULT_MOBILE_WIDTH = 80
 
 const palettes: Record<string, PaletteDef> = {
   commands,
@@ -34,7 +38,8 @@ if (name === "commands") {
 
 // Measure mode: print "<rows>\t<width>\t<padX>" so the bash wrapper
 // can size the popup. Defaults are applied here so sizing.json
-// overrides flow through naturally.
+// overrides flow through naturally. `--cw=N --ch=N` lets us trigger
+// fullscreen mobile mode based on actual client dimensions.
 if (process.argv.includes("--measure")) {
   const items: Item[] = typeof def.items === "function" ? await def.items() : def.items
   const cats = new Set(items.map((i) => i.category).filter((c): c is string => Boolean(c))).size
@@ -43,9 +48,25 @@ if (process.argv.includes("--measure")) {
   const maxHeight = sizing.maxHeight ?? DEFAULT_MAX_HEIGHT
   const width = sizing.width ?? DEFAULT_WIDTH
   const padX = sizing.padX ?? DEFAULT_PAD_X
+  const mobileWidth = sizing.mobileWidth ?? DEFAULT_MOBILE_WIDTH
+  const cwArg = process.argv.find((a) => a.startsWith("--cw="))
+  const chArg = process.argv.find((a) => a.startsWith("--ch="))
+  const cw = cwArg ? Number(cwArg.slice(5)) : 0
+  const ch = chArg ? Number(chArg.slice(5)) : 0
+
   const desired = items.length + cats + 7
-  const rows = Math.min(desired, maxHeight)
-  console.log(`${rows}\t${width}\t${padX}`)
+  let rows = Math.min(desired, maxHeight)
+  let finalWidth = width
+  let finalPadX = padX
+
+  if (mobileWidth > 0 && cw > 0 && cw < mobileWidth) {
+    // Mobile/fullscreen: edge-to-edge, tighter padding.
+    rows = Math.max(rows, ch)
+    finalWidth = cw
+    finalPadX = 1
+  }
+
+  console.log(`${rows}\t${finalWidth}\t${finalPadX}`)
   process.exit(0)
 }
 
