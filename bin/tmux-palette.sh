@@ -19,7 +19,7 @@ CW="$($TMUX_BIN display-message -p '#{client_width}' 2>/dev/null || echo 80)"
 # rows<TAB>width<TAB>padX<TAB>border<TAB>bodyStyle<TAB>borderStyle,
 # with defaults + sizing.json applied. Passing client dims lets
 # sizing.json trigger fullscreen mobile mode.
-MEASURE="$(bun "$DIR/src/cli.ts" "$PALETTE" --measure "--cw=$CW" "--ch=$CH" "${EXTRA_ARGS[@]}" 2>/dev/null || echo "20	90	3	none	default	default")"
+MEASURE="$(bun "$DIR/src/cli.ts" "$PALETTE" --measure "--cw=$CW" "--ch=$CH" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}" 2>/dev/null || echo "20	90	3	none	default	default")"
 IFS=$'\t' read -r WANT_H WANT_W WANT_PADX WANT_BORDER WANT_BODY_STYLE WANT_BORDER_STYLE <<< "$MEASURE"
 WANT_H="${WANT_H:-20}"
 WANT_W="${WANT_W:-90}"
@@ -52,7 +52,7 @@ fi
 
 # Build the final argv (palette + any forwarded flags) with shell-safe quoting.
 ARG_STR=""
-for a in "$PALETTE" "${EXTRA_ARGS[@]}"; do
+for a in "$PALETTE" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; do
   ARG_STR+=" $(printf %q "$a")"
 done
 
