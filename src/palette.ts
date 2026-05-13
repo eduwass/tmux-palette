@@ -376,8 +376,15 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   }
 
   function handleEditKey(key: string): boolean {
-    if (key === "\x7f") {
+    if (key === "\x7f" || key === "\x08") {
       filter = filter.slice(0, -1)
+    } else if (key === "\x1b\x7f" || key === "\x1b\x08" || key === "\x17") {
+      // Alt+Backspace / Ctrl+W: drop trailing whitespace, then trailing word.
+      filter = filter.replace(/\s+$/, "").replace(/\S+$/, "")
+    } else if (key === "\x15" || key === "\x0b") {
+      // Ctrl+U / Ctrl+K: clear filter. (Cmd+Backspace arrives as \x15 in
+      // many terminals; users can remap via their terminal's keybind config.)
+      filter = ""
     } else if (key.length === 1 && key >= " ") {
       filter += key
     } else {
