@@ -7,12 +7,16 @@ function tmux(args: string[]): string {
   return r.stdout?.toString().trimEnd() ?? ""
 }
 
+function tmuxQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`
+}
+
 function newWindowItems(sessions: string[], paneId: string): Item[] {
   return sessions.map((session) => ({
     icon: "󰝰",
     title: "New window",
     description: `in ${session}`,
-    action: { tmux: `break-pane -d -s '${paneId}' -t '${session}:'` },
+    action: { tmux: `break-pane -d -s ${tmuxQuote(paneId)} -t ${tmuxQuote(`${session}:`)}` },
   }))
 }
 
@@ -35,7 +39,7 @@ function joinWindowItems(winLines: string[], paneId: string, currentWindow: stri
       icon: "󰖲",
       title: w.windowName,
       description: `${w.session} · ${w.windowIndex}`,
-      action: { tmux: `join-pane -d -s '${paneId}' -t '${target}'` },
+      action: { tmux: `join-pane -d -s ${tmuxQuote(paneId)} -t ${tmuxQuote(target)}` },
     })
   }
   return items

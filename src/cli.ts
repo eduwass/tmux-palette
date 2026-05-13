@@ -145,7 +145,8 @@ async function loadPalette(name: string): Promise<PaletteDef | null> {
   return def
 }
 
-const name = process.argv[2] || "commands"
+const args = process.argv.slice(2)
+const name = args.find((a) => !a.startsWith("--")) || "commands"
 const loaded = await loadPalette(name)
 
 if (!loaded) {
@@ -158,7 +159,7 @@ let def: PaletteDef = loaded!
 
 // --category=<name> filters items to a single category and retitles
 // the popup to it. Useful for binding "open Tools palette" to one key.
-const categoryArg = process.argv.find((a) => a.startsWith("--category="))
+const categoryArg = args.find((a) => a.startsWith("--category="))
 const categoryFilter = categoryArg ? categoryArg.slice("--category=".length) : ""
 if (categoryFilter) {
   const baseItems: Item[] = typeof def.items === "function" ? await def.items() : def.items
@@ -170,7 +171,7 @@ if (categoryFilter) {
 // can size the popup. Defaults are applied here so sizing.json
 // overrides flow through naturally. `--cw=N --ch=N` lets us trigger
 // fullscreen mobile mode based on actual client dimensions.
-if (process.argv.includes("--measure")) {
+if (args.includes("--measure")) {
   const items: Item[] = typeof def.items === "function" ? await def.items() : def.items
   const grouped = def.grouped !== false
   const cats = grouped
@@ -183,8 +184,8 @@ if (process.argv.includes("--measure")) {
   const padX = sizing.padX ?? DEFAULT_PAD_X
   const mobileWidth = sizing.mobileWidth ?? DEFAULT_MOBILE_WIDTH
   const border = sizing.border ?? "none"
-  const cwArg = process.argv.find((a) => a.startsWith("--cw="))
-  const chArg = process.argv.find((a) => a.startsWith("--ch="))
+  const cwArg = args.find((a) => a.startsWith("--cw="))
+  const chArg = args.find((a) => a.startsWith("--ch="))
   const cw = cwArg ? Number(cwArg.slice(5)) : 0
   const ch = chArg ? Number(chArg.slice(5)) : 0
 

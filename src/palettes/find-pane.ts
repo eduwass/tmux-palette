@@ -8,6 +8,10 @@ function tmux(args: string[]): string {
   return r.stdout?.toString().trimEnd() ?? ""
 }
 
+function tmuxQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`
+}
+
 function detectAgent(command: string, title: string): string {
   const direct = new Set(["claude", "codex", "aider", "cursor-agent", "opencode", "gemini", "ollama"])
   if (direct.has(command)) return command
@@ -105,7 +109,7 @@ function sessionItem(session: string, allInSession: Pane[], currentSession: stri
   const focused = allInSession.find((p) => p.paneActive && p.windowActive) || allInSession[0]
   return {
     title: session,
-    action: { tmux: `switch-client -t '${session}'` },
+    action: { tmux: `switch-client -t ${tmuxQuote(session)}` },
     selectable: false,
     data: {
       kind: "session",
@@ -118,8 +122,9 @@ function sessionItem(session: string, allInSession: Pane[], currentSession: stri
 }
 
 function paneSelectAction(p: Pane): { tmux: string } {
+  const windowTarget = `${p.session}:${p.windowIndex}`
   return {
-    tmux: `select-pane -t '${p.target}' \\; select-window -t '${p.session}:${p.windowIndex}' \\; switch-client -t '${p.session}'`,
+    tmux: `select-pane -t ${tmuxQuote(p.target)} \\; select-window -t ${tmuxQuote(windowTarget)} \\; switch-client -t ${tmuxQuote(p.session)}`,
   }
 }
 
@@ -134,7 +139,7 @@ function paneItem(p: Pane, treePrefix: string): Item {
 function windowItem(session: string, windowIndex: string, w: WindowGroup, treePrefix: string): Item {
   return {
     title: w.windowName,
-    action: { tmux: `select-window -t '${session}:${windowIndex}' \\; switch-client -t '${session}'` },
+    action: { tmux: `select-window -t ${tmuxQuote(`${session}:${windowIndex}`)} \\; switch-client -t ${tmuxQuote(session)}` },
     selectable: false,
     data: {
       kind: "window",
