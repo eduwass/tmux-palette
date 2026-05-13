@@ -7,14 +7,12 @@ Type a few letters, pick a command, hit enter: split a pane, jump to a window,
 detach a session, open a popup tool, or switch to a custom palette. User config
 lives in `~/.config/tmux-palette/*.json`, so local changes survive repo updates.
 
-https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593
-
 ## Highlights
 
 - **Fast startup** — designed for frequent use from a tmux key binding
-- **Custom palettes** — define your own with [a single JSON file](#custom-palettes-rcfgtmux-palettepalettesnamejson), bind to any key
+- **Custom palettes** — define your own with [a single JSON file](#custom-palettes-configtmux-palettepalettesnamejson), bind to any key
 - **Hide built-ins** — declutter the default palette via [`hidden.json`](#hiddenjson--hide-built-in-items)
-- **Mobile-aware** — [auto-fullscreens](#sizingjson--popup-dimensions) on narrow terminals (Moshi / Blink on iOS)
+- **Mobile-aware** — [auto-fullscreens](#sizingjson--popup-dimensions-and-borders) on narrow terminals (Moshi / Blink on iOS)
 - **Curated themes** — 12 built-in themes including Shades of Purple, Dracula, Tokyo Night, Catppuccin, Gruvbox, Nord, and Solarized. [Pick one with live preview](#themes), or [drop your own](#custom-themes)
 - **Popup tools** — use `{ "popup": "htop" }` to open tools like `btop`, `lazygit`, log tails, or `fzf` scripts in a tmux popup
 - **Scriptable sources** — point a palette at a shell command that prints JSON or one item per line. Examples live in [`examples/`](examples)
@@ -31,7 +29,7 @@ https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593
 Paste the prompt below into [Claude Code](https://claude.com/claude-code), [Codex](https://github.com/openai/codex), [opencode](https://opencode.ai), Cursor, or any AI coding agent. It will install the repo, set up your tmux binding, and (optionally) match the palette colors to your terminal theme.
 
 ````
-You are helping a user install tmux-palette — a Raycast-style command palette for tmux. Repo: https://github.com/eduwass/tmux-palette
+You are helping a user install tmux-palette, a command palette for tmux. Repo: https://github.com/eduwass/tmux-palette
 
 Follow steps in order. Confirm with the user before any change that modifies their files.
 
@@ -154,7 +152,7 @@ Define a brand-new palette and bind any key to its name:
 bind -n M-q run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh my-favs"
 ```
 
-```json
+```jsonc
 // ~/.config/tmux-palette/palettes/my-favs.json
 {
   "title": "Favorites",
@@ -189,7 +187,7 @@ that prints to stdout becomes a palette. Two output modes:
 
 **JSON mode** — full control. Print a JSON array of `Item` objects:
 
-```json
+```jsonc
 // ~/.config/tmux-palette/palettes/github-prs.json
 {
   "title": "GitHub PRs",
@@ -201,7 +199,7 @@ that prints to stdout becomes a palette. Two output modes:
 default `action` template at the palette level with `{}` substituted
 for the selected line:
 
-```json
+```jsonc
 // ~/.config/tmux-palette/palettes/git-branches.json
 {
   "title": "Git Branches",
@@ -289,10 +287,10 @@ edge-to-edge with `padX=1`. Defaults to 80, set to 0 to disable.
 
 `border` is the main palette border, `popupBorder` is the border for
 `{ "popup": "..." }` action popups. Both default to `none`. Accepted
-values: `none`, `single`, `double`, `heavy`, `padded`, `simple` —
-passed straight to `tmux display-popup -b`. `rounded` works too but
-its corner glyphs leave small visual gaps against the surrounding
-terminal, so it's not recommended.
+values: `none`, `single`, `double`, `heavy`, `rounded`, `padded`,
+`simple` — passed straight to `tmux display-popup -b`. `rounded` works
+but its corner glyphs can leave small visual gaps against the
+surrounding terminal, so it is not the default.
 
 ### Themes
 
@@ -300,6 +298,9 @@ Open the main palette and pick **Switch Theme...** (under *Appearance*).
 Arrow-key through the list — every theme lives-previews instantly so you
 see the colors apply before you commit. Enter saves it and returns you to
 the previous palette with the new theme on; Esc cancels.
+
+The theme picker also includes **Add custom theme...**, which opens this
+README's custom-theme instructions in your default browser.
 
 Bundled themes are intentionally limited to a small curated set: Shades of
 Purple, Dracula, Tokyo Night, Catppuccin Mocha, Gruvbox Dark, Rosé Pine, Nord,
@@ -336,7 +337,7 @@ also mix: pick a name, then add individual keys to nudge specific colors.
 
 Drop one JSON file per theme into `~/.config/tmux-palette/themes/`:
 
-```json
+```jsonc
 // ~/.config/tmux-palette/themes/my-theme.json
 {
   "bg": "#0d0f12",

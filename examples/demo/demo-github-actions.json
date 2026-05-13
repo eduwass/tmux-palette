@@ -1,5 +1,5 @@
 {
   "title": "GitHub Actions",
-  "command": "gh run list --limit 20 --json status,conclusion,workflowName,headBranch,databaseId,event 2>/dev/null | jq '[.[] | {icon: \"●\",iconColor: (if .conclusion == \"success\" then \"#22cc22\" elif .conclusion == \"failure\" then \"#cc4444\" elif .conclusion == \"cancelled\" then \"#888888\" elif .status == \"in_progress\" or .status == \"queued\" then \"#fad000\" else \"#aaaaaa\" end),title: \"\\(.workflowName) — \\(.headBranch)\",description: \"\\(.event) · \\(.conclusion // .status)\",action: { popup: \"gh run view \\(.databaseId) --log 2>&1 | less -R\" }}]'",
+  "command": "gh run list --limit 20 --json status,conclusion,workflowName,headBranch,databaseId,event,url 2>/dev/null | jq '[.[] | {icon: \"●\",iconColor: (if .conclusion == \"success\" then \"#22cc22\" elif .conclusion == \"failure\" then \"#cc4444\" elif .conclusion == \"cancelled\" then \"#888888\" elif .status == \"in_progress\" or .status == \"queued\" then \"#fad000\" else \"#aaaaaa\" end),title: \"\\(.workflowName) — \\(.headBranch)\",description: \"\\(.event) · \\(.conclusion // .status)\",action: { shell: \"open \\(.url) >/dev/null 2>&1 || xdg-open \\(.url) >/dev/null 2>&1\" }}]'",
   "emptyText": "No runs (or gh / jq not installed)"
 }
