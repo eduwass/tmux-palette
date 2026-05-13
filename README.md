@@ -42,6 +42,9 @@ See [`examples/`](examples) for drop-in palettes you can copy into
 
 ## Install
 
+Use TPM if you already use it; otherwise manual install is the simplest path.
+The AI-agent option is just a guided setup flow.
+
 ### Requirements
 
 - [Bun](https://bun.sh)
@@ -52,6 +55,8 @@ See [`examples/`](examples) for drop-in palettes you can copy into
 <summary><b>Manual install</b></summary>
 
 <br/>
+
+Requires Bun: https://bun.sh
 
 ```bash
 git clone https://github.com/eduwass/tmux-palette ~/Sites/tmux-palette
@@ -91,7 +96,9 @@ set -g @palette-find-pane-key 'M-f'       # optional, no binding by default
 set -g @palette-move-pane-key 'M-m'       # optional, no binding by default
 ```
 
-Then `prefix + I` to install. TPM clones the repo, runs `bun install` on first load, and binds the keys for you. Set `@palette-key 'off'` to skip the main binding and bind it yourself.
+Then `prefix + I` (TPM's install key) to install. TPM clones the repo,
+runs `bun install` on first load, and binds the keys for you. Set
+`@palette-key 'off'` to skip the main binding and bind it yourself.
 
 </details>
 
@@ -100,7 +107,10 @@ Then `prefix + I` to install. TPM clones the repo, runs `bun install` on first l
 
 <br/>
 
-Choose this option if you want an agent to drive the onboarding experience: install the repo, set up the tmux binding, test that it opens, and optionally create your first custom commands or theme.
+This is optional; it is just a guided setup flow. Choose it if you want an
+agent to drive the onboarding experience: install the repo, set up the tmux
+binding, test that it opens, and optionally create your first custom commands
+or theme.
 
 Paste the prompt below into [Claude Code](https://claude.com/claude-code), [Codex](https://github.com/openai/codex), [opencode](https://opencode.ai), Cursor, or any AI coding agent.
 
