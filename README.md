@@ -133,6 +133,20 @@ Initials of multi-word titles are matched automatically. Type `nw` for "New
 Window", `cs` for "Choose Session", `sh` for "Split Horizontal", etc. These
 aren't displayed in the UI — they just work.
 
+### Category hotkeys
+
+Pass `--category=<name>` to open a palette filtered to just one category.
+Useful for binding "my Tools" or "my Appearance" to a single keystroke,
+Raycast-favorites style:
+
+```tmux
+bind -n M-t run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh commands --category=Tools"
+bind -n M-a run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh commands --category=Appearance"
+```
+
+The popup title auto-updates to the category name and the category
+header gets hidden (since everything is the same category anyway).
+
 ## Customize
 
 Drop-in user config lives in `~/.config/tmux-palette/`. Edit JSON files here
@@ -211,7 +225,7 @@ Applies to all palettes. Built-in themes (`shades-of-purple` default,
 
 ```json
 {
-  "maxHeight": 24,
+  "maxHeight": 28,
   "width": 90,
   "padX": 3,
   "mobileWidth": 80

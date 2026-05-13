@@ -6,7 +6,7 @@ import type { Item, PaletteDef } from "./types"
 import { userCommands, userSizing } from "./userConfig"
 
 const DEFAULT_WIDTH = 90
-const DEFAULT_MAX_HEIGHT = 24
+const DEFAULT_MAX_HEIGHT = 28
 const DEFAULT_PAD_X = 3
 // When the client is narrower than this, the popup goes edge-to-edge.
 // 80 is the classic terminal width; anything below has too little room
@@ -34,6 +34,16 @@ if (name === "commands") {
     const baseItems: Item[] = typeof def.items === "function" ? await def.items() : def.items
     def = { ...def, items: [...baseItems, ...extras] }
   }
+}
+
+// --category=<name> filters items to a single category and retitles
+// the popup to it. Useful for binding "open Tools palette" to one key.
+const categoryArg = process.argv.find((a) => a.startsWith("--category="))
+const categoryFilter = categoryArg ? categoryArg.slice("--category=".length) : ""
+if (categoryFilter) {
+  const baseItems: Item[] = typeof def.items === "function" ? await def.items() : def.items
+  const filtered = baseItems.filter((i) => i.category === categoryFilter)
+  def = { ...def, items: filtered, title: categoryFilter, grouped: false }
 }
 
 // Measure mode: print "<rows>\t<width>\t<padX>" so the bash wrapper

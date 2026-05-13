@@ -7,6 +7,10 @@ CMD_FILE="$(mktemp)"
 trap 'rm -f "$CMD_FILE"' EXIT
 
 PALETTE="${1:-commands}"
+shift || true
+# Remaining args (e.g. --category=Tools) get forwarded to both the
+# measure pass and the popup invocation so filters affect sizing too.
+EXTRA_ARGS=("$@")
 
 CH="$($TMUX_BIN display-message -p '#{client_height}' 2>/dev/null || echo 24)"
 CW="$($TMUX_BIN display-message -p '#{client_width}' 2>/dev/null || echo 80)"
@@ -14,7 +18,7 @@ CW="$($TMUX_BIN display-message -p '#{client_width}' 2>/dev/null || echo 80)"
 # Ask the palette how big it wants to be. cli.ts emits a tab-separated
 # triple: rows<TAB>width<TAB>padX, with defaults + sizing.json applied.
 # Passing client dims lets sizing.json trigger fullscreen mobile mode.
-MEASURE="$(bun "$DIR/src/cli.ts" "$PALETTE" --measure "--cw=$CW" "--ch=$CH" 2>/dev/null || echo "20	90	3")"
+MEASURE="$(bun "$DIR/src/cli.ts" "$PALETTE" --measure "--cw=$CW" "--ch=$CH" "${EXTRA_ARGS[@]}" 2>/dev/null || echo "20	90	3")"
 IFS=$'\t' read -r WANT_H WANT_W WANT_PADX <<< "$MEASURE"
 WANT_H="${WANT_H:-20}"
 WANT_W="${WANT_W:-90}"
@@ -33,10 +37,16 @@ if [ "$WANT_W" -ge "$CW" ]; then H="$CH"; W="$CW"; fi
 H="${TMUX_PALETTE_HEIGHT:-$H}"
 W="${TMUX_PALETTE_WIDTH:-$W}"
 
+# Build the final argv (palette + any forwarded flags) with shell-safe quoting.
+ARG_STR=""
+for a in "$PALETTE" "${EXTRA_ARGS[@]}"; do
+  ARG_STR+=" $(printf %q "$a")"
+done
+
 # TMUX_PALETTE_BIN is set so { palette: "..." } subpalette chaining knows
 # how to invoke ourselves — without it we'd assume "tmux-palette" is on PATH.
 $TMUX_BIN display-popup -B -w "$W" -h "$H" -E \
-  "TMUX_PALETTE_CMD='$CMD_FILE' TMUX_PALETTE_BIN='$0' TMUX_PALETTE_PADX='$WANT_PADX' exec bun '$DIR/src/cli.ts' $PALETTE"
+  "TMUX_PALETTE_CMD='$CMD_FILE' TMUX_PALETTE_BIN='$0' TMUX_PALETTE_PADX='$WANT_PADX' exec bun '$DIR/src/cli.ts'$ARG_STR"
 
 if [ -s "$CMD_FILE" ]; then
   CMD="$(cat "$CMD_FILE")"
