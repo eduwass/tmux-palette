@@ -68,6 +68,14 @@ export type Sizing = {
   // Styles for { popup } action popups. Default to theme.panel / accent.
   popupBodyStyle?: string
   popupBorderStyle?: string
+  // Width/height for { popup } action popups. tmux accepts a number of cells
+  // ("80") or a percentage ("80%"). Defaults: 80% × 80%.
+  popupWidth?: string
+  popupHeight?: string
+  // ESC key behavior in nested palettes. "back" pops one level at a time
+  // (Raycast-style), closing the popup only at the top. "exit" always
+  // closes immediately. Default: "back".
+  esc?: "back" | "exit"
 }
 let _sizing: Sizing | null = null
 export function userSizing(): Sizing {

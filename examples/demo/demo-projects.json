@@ -1,0 +1,10 @@
+{
+  "title": "Switch Project",
+  "icon": "",
+  "iconColor": "#c0a070",
+  "command": "ls -1 ~/Sites 2>/dev/null",
+  "action": {
+    "shell": "tmux has-session -t '{}' 2>/dev/null || tmux new-session -d -s '{}' -c \"$HOME/Sites/{}\"; tmux switch-client -t '{}'"
+  },
+  "emptyText": "No directories in ~/Sites"
+}

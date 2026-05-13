@@ -1,0 +1,10 @@
+{
+  "title": "Docker Logs",
+  "icon": "",
+  "iconColor": "#22a3e6",
+  "command": "docker ps --format '{{.Names}}' 2>/dev/null",
+  "action": {
+    "popup": "docker logs -f --tail 200 {}"
+  },
+  "emptyText": "No running containers"
+}

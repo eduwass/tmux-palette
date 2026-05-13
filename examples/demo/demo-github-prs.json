@@ -1,0 +1,5 @@
+{
+  "title": "GitHub PRs",
+  "command": "gh pr list --state all --limit 20 --json number,title,state,isDraft,url 2>/dev/null | jq '[.[] | {icon: \"●\",iconColor: (if .state == \"MERGED\" then \"#a371f7\" elif .state == \"CLOSED\" then \"#cc4444\" elif .isDraft then \"#888888\" else \"#22cc22\" end),title: \"#\\(.number) \\(.title)\",description: .state,action: { popup: \"gh pr view \\(.number) | less\" }}]'",
+  "emptyText": "No PRs (or gh / jq not installed)"
+}

@@ -102,14 +102,14 @@ const palettes: Record<string, PaletteDef> = {
   "move-pane": movePane,
 }
 
-const name = process.argv[2] || "commands"
-let def = palettes[name]
+// Resolves a palette by name: built-in registry → ~/.config/tmux-palette/palettes/<name>.json.
+// Called for both top-level CLI invocations and nested in-process navigation.
+async function loadPalette(name: string): Promise<PaletteDef | null> {
+  let def: PaletteDef | undefined = palettes[name]
 
-// Custom palettes live in ~/.config/tmux-palette/palettes/<name>.json.
-// Looked up here so users can override built-in names too (advanced).
-if (!def) {
-  const custom = userPalette(name)
-  if (custom) {
+  if (!def) {
+    const custom = userPalette(name)
+    if (!custom) return null
     const baseCommands: Item[] =
       typeof commands.items === "function" ? await commands.items() : commands.items
     const allMain: Item[] = [...baseCommands, ...userCommands()]
@@ -135,25 +135,30 @@ if (!def) {
       items,
     }
   }
+
+  if (name === "commands") {
+    const extras = userCommands()
+    const hidden = userHidden()
+    const baseItems: Item[] = typeof def.items === "function" ? await def.items() : def.items
+    const merged = [...baseItems, ...extras].filter((i) => !hidden.has(i.title))
+    if (merged.length !== baseItems.length || extras.length) {
+      def = { ...def, items: merged }
+    }
+  }
+
+  return def
 }
 
-if (!def) {
+const name = process.argv[2] || "commands"
+const loaded = await loadPalette(name)
+
+if (!loaded) {
   const builtIn = Object.keys(palettes).join(", ")
   console.error(`Unknown palette: ${name}. Built-in: ${builtIn}. Custom palettes go in ~/.config/tmux-palette/palettes/<name>.json`)
   process.exit(1)
 }
 
-// Append user-defined items to the commands palette and drop any items
-// listed in hidden.json (~/.config/tmux-palette/{commands,hidden}.json).
-if (name === "commands") {
-  const extras = userCommands()
-  const hidden = userHidden()
-  const baseItems: Item[] = typeof def.items === "function" ? await def.items() : def.items
-  const merged = [...baseItems, ...extras].filter((i) => !hidden.has(i.title))
-  if (merged.length !== baseItems.length || extras.length) {
-    def = { ...def, items: merged }
-  }
-}
+let def: PaletteDef = loaded!
 
 // --category=<name> filters items to a single category and retitles
 // the popup to it. Useful for binding "open Tools palette" to one key.
@@ -214,4 +219,4 @@ if (process.argv.includes("--measure")) {
   process.exit(0)
 }
 
-await runPalette(def)
+await runPalette(def, loadPalette, name)

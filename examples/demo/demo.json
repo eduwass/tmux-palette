@@ -1,0 +1,58 @@
+{
+  "title": "Demo",
+  "items": [
+    {
+      "icon": "",
+      "iconColor": "#dd7777",
+      "title": "Lazygit",
+      "description": "Full git TUI inside the popup",
+      "action": {
+        "popup": "lazygit"
+      }
+    },
+    {
+      "icon": "",
+      "iconColor": "#7aa2f7",
+      "title": "System Monitor",
+      "description": "htop — top processes, live, inside the popup",
+      "action": {
+        "popup": "htop"
+      }
+    },
+    {
+      "icon": "",
+      "title": "GitHub PRs",
+      "description": "Recent PRs with status-colored dots",
+      "action": {
+        "palette": "demo-github-prs"
+      }
+    },
+    {
+      "icon": "",
+      "iconColor": "#fad000",
+      "title": "GitHub Actions",
+      "description": "CI runs with status-colored dots",
+      "action": {
+        "palette": "demo-github-actions"
+      }
+    },
+    {
+      "icon": "",
+      "iconColor": "#22a3e6",
+      "title": "Docker Logs",
+      "description": "Select a container, tail its logs in a popup",
+      "action": {
+        "palette": "demo-docker"
+      }
+    },
+    {
+      "icon": "",
+      "iconColor": "#c0a070",
+      "title": "Switch Project",
+      "description": "Hop between tmux sessions for ~/Sites/*",
+      "action": {
+        "palette": "demo-projects"
+      }
+    }
+  ]
+}

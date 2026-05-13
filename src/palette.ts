@@ -1,3 +1,4 @@
+import { writeFileSync } from "node:fs"
 import { dispatchToFile } from "./dispatch"
 import { defaultFilter } from "./fuzzy"
 import {
@@ -16,7 +17,17 @@ import {
 } from "./render"
 import { makeColors, resolveTheme } from "./theme"
 import type { Item, PaletteDef } from "./types"
-import { userAliases, userShortcuts, userTheme } from "./userConfig"
+import { userAliases, userShortcuts, userSizing, userTheme } from "./userConfig"
+
+export type PaletteLoader = (name: string) => Promise<PaletteDef | null>
+
+type NavState = {
+  def: PaletteDef
+  name: string
+  selected: number
+  scroll: number
+  filter: string
+}
 
 export function definePalette(def: PaletteDef): PaletteDef {
   return def
@@ -72,23 +83,28 @@ function parseMouseEvent(key: string): MouseEvent | null {
   }
 }
 
-export async function runPalette(def: PaletteDef): Promise<void> {
-  const baseTheme = resolveTheme(def.theme)
-  const theme = { ...baseTheme, ...(userTheme() ?? {}) }
-  const colors = makeColors(theme)
-  const raw: Item[] = typeof def.items === "function" ? await def.items() : def.items
-  const items: Item[] = applyUserOverrides(raw)
+export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initialName?: string): Promise<void> {
+  // These all swap when navigating between palettes, so they're `let`.
+  let currentDef = def
+  let currentName = initialName ?? "commands"
+  let theme = { ...resolveTheme(def.theme), ...(userTheme() ?? {}) }
+  let colors = makeColors(theme)
+  let rawItems: Item[] = typeof def.items === "function" ? await def.items() : def.items
+  let items: Item[] = applyUserOverrides(rawItems)
+  let title = def.title ?? "Commands"
+  let grouped = def.grouped !== false
+  let emptyText = def.emptyText ?? "No results"
 
   const cmdFile = process.env.TMUX_PALETTE_CMD
-  const title = def.title ?? "Commands"
-  const grouped = def.grouped !== false
-  const emptyText = def.emptyText ?? "No results"
 
   let filter = ""
   let selected = 0
   let scroll = 0
   let rowActions: RowAction[] = []
   let escAction: { y: number; xStart: number; xEnd: number } | undefined
+
+  // Back-stack for in-process palette navigation (Raycast-style).
+  const stack: NavState[] = []
 
   const stdin = process.stdin
   const stdout = process.stdout
@@ -98,10 +114,45 @@ export async function runPalette(def: PaletteDef): Promise<void> {
     process.exit(1)
   }
 
+  async function loadDef(d: PaletteDef): Promise<void> {
+    currentDef = d
+    theme = { ...resolveTheme(d.theme), ...(userTheme() ?? {}) }
+    colors = makeColors(theme)
+    rawItems = typeof d.items === "function" ? await d.items() : d.items
+    items = applyUserOverrides(rawItems)
+    title = d.title ?? "Commands"
+    grouped = d.grouped !== false
+    emptyText = d.emptyText ?? "No results"
+  }
+
+  async function navigateTo(name: string): Promise<void> {
+    if (!loader) return
+    const next = await loader(name)
+    if (!next) return
+    stack.push({ def: currentDef, name: currentName, selected, scroll, filter })
+    await loadDef(next)
+    currentName = name
+    selected = 0
+    scroll = 0
+    filter = ""
+    render()
+  }
+
+  async function navigateBack(): Promise<void> {
+    if (stack.length === 0) return exitNow()
+    const prev = stack.pop()!
+    await loadDef(prev.def)
+    currentName = prev.name
+    selected = prev.selected
+    scroll = prev.scroll
+    filter = prev.filter
+    render()
+  }
+
   function visible(): Item[] {
     const needle = filter.trim()
     if (!needle) return items
-    if (def.filter) return def.filter(items, needle)
+    if (currentDef.filter) return currentDef.filter(items, needle)
     return defaultFilter(items, needle)
   }
 
@@ -113,7 +164,8 @@ export async function runPalette(def: PaletteDef): Promise<void> {
   function renderRowContent(row: Row, isSelected: boolean, bodyWidth: number): string {
     const rowBg = isSelected ? colors.selected : colors.panel
     if (row.kind === "category") return renderCategory(row.category, colors, rowBg)
-    if (def.renderItem) return def.renderItem(row.item, { colors, active: isSelected, width: bodyWidth })
+    if (currentDef.renderItem)
+      return currentDef.renderItem(row.item, { colors, active: isSelected, width: bodyWidth })
     return renderDefaultItem(row.item, colors, isSelected, bodyWidth)
   }
 
@@ -191,7 +243,46 @@ export async function runPalette(def: PaletteDef): Promise<void> {
     process.exit(0)
   }
 
+  // Builds the shell command that powers a { popup } action: open a sized
+  // tmux popup running `cmd`, then re-launch the palette at `relaunchName`
+  // when it closes. tmux only allows one popup per client so we can't nest
+  // or resize mid-run — exit + reopen is the only way to get a different
+  // size for the popup-action contents.
+  function buildPopupRelaunchCommand(cmd: string, relaunchName: string): string {
+    const sizing = userSizing()
+    const popupBorder = sizing.popupBorder ?? "none"
+    const bodyStyle = sizing.popupBodyStyle ?? `bg=${theme.panel}`
+    const borderStyle = sizing.popupBorderStyle ?? `fg=${theme.accent},bg=default`
+    const popupW = sizing.popupWidth ?? "80%"
+    const popupH = sizing.popupHeight ?? "80%"
+    const borderArg = popupBorder === "none"
+      ? `-B -s '${bodyStyle}'`
+      : `-b ${popupBorder} -s '${bodyStyle}' -S '${borderStyle}'`
+    const bin = process.env.TMUX_PALETTE_BIN ?? "tmux-palette"
+    // The trailing relaunch uses `run-shell -b` so tmux returns immediately;
+    // the wrapper script itself opens a new display-popup for the palette.
+    return `tmux display-popup -E ${borderArg} -h ${popupH} -w ${popupW} ${cmd}; tmux run-shell -b '${bin} ${relaunchName}'`
+  }
+
   async function activate(item: Item): Promise<void> {
+    // In-process nested navigation. If no loader is wired (shouldn't happen
+    // from cli.ts) we fall through to the dispatch path, which encodes the
+    // palette action as a tmux run-shell call.
+    if ("palette" in item.action && loader) {
+      await navigateTo(item.action.palette)
+      return
+    }
+    // Popup actions: exit, then have the wrapper run a sized popup and
+    // re-launch us at the current palette when it closes.
+    if ("popup" in item.action) {
+      cleanup()
+      if (cmdFile) {
+        try {
+          writeFileSync(cmdFile, `shell:${buildPopupRelaunchCommand(item.action.popup, currentName)}`)
+        } catch {}
+      }
+      process.exit(0)
+    }
     cleanup()
     if ("run" in item.action) {
       await item.action.run({ cmdFile })
@@ -199,6 +290,15 @@ export async function runPalette(def: PaletteDef): Promise<void> {
     }
     dispatchToFile(item.action, cmdFile)
     process.exit(0)
+  }
+
+  function escPressed(): void {
+    const escMode = userSizing().esc ?? "back"
+    if (escMode === "back" && stack.length > 0) {
+      void navigateBack()
+      return
+    }
+    exitNow()
   }
 
   function escClicked(x: number, y: number): boolean {
@@ -215,7 +315,10 @@ export async function runPalette(def: PaletteDef): Promise<void> {
   }
 
   function handleMouseClick(x: number, y: number, vis: Item[]): void {
-    if (escClicked(x, y)) exitNow()
+    if (escClicked(x, y)) {
+      escPressed()
+      return
+    }
     handleRowClick(y, vis)
   }
 
@@ -236,7 +339,11 @@ export async function runPalette(def: PaletteDef): Promise<void> {
   }
 
   function handleEnterOrExit(key: string, vis: Item[]): boolean {
-    if (key === "\x1b" || key === "\x03") exitNow()
+    if (key === "\x1b") {
+      escPressed()
+      return true
+    }
+    if (key === "\x03") exitNow()
     if (key !== "\r") return false
     const item = vis[selected]
     if (item && isSelectable(item)) void activate(item)
