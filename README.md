@@ -99,6 +99,26 @@ Reload: `tmux source-file ~/.tmux.conf` and hit your binding.
 
 </details>
 
+<details>
+<summary><b>Install via TPM</b> (Tmux Plugin Manager)</summary>
+
+<br/>
+
+Requires Bun: https://bun.sh
+
+Add to your `.tmux.conf`:
+
+```tmux
+set -g @plugin 'eduwass/tmux-palette'
+set -g @palette-key 'C-Space'             # optional, default: C-Space (no-prefix)
+set -g @palette-find-pane-key 'M-f'       # optional, no binding by default
+set -g @palette-move-pane-key 'M-m'       # optional, no binding by default
+```
+
+Then `prefix + I` to install. TPM clones the repo, runs `bun install` on first load, and binds the keys for you. Set `@palette-key 'off'` to skip the main binding and bind it yourself.
+
+</details>
+
 ## Usage
 
 - **Type** to filter. Multi-word search is supported (`split horiz`).
