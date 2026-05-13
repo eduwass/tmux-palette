@@ -53,6 +53,13 @@ export type Item = {
    * Defaults to true.
    */
   selectable?: boolean
+  /**
+   * Restricts visibility by filter state.
+   *   "filter"    — only shown when the user has typed a query (hidden by default).
+   *   "no-filter" — only shown when no query is active (e.g. Recent entries).
+   * Default: always shown.
+   */
+  showWhen?: "filter" | "no-filter"
 }
 
 export type Theme = {

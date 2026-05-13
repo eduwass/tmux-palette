@@ -151,9 +151,10 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
 
   function visible(): Item[] {
     const needle = filter.trim()
-    if (!needle) return items
-    if (currentDef.filter) return currentDef.filter(items, needle)
-    return defaultFilter(items, needle)
+    if (!needle) return items.filter((i) => i.showWhen !== "filter")
+    const searchable = items.filter((i) => i.showWhen !== "no-filter")
+    if (currentDef.filter) return currentDef.filter(searchable, needle)
+    return defaultFilter(searchable, needle)
   }
 
   stdin.setRawMode(true)
