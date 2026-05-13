@@ -82,6 +82,19 @@ export type CustomPalette = {
   from?: string[]
   // Pull every item with this category from the main commands palette.
   fromCategory?: string
+  // Shell command that prints either:
+  //   - a JSON array of Item objects (full control), or
+  //   - one item per line (fzf-style; needs an `action` template below).
+  command?: string
+  // Default action for plain-text command output. `{}` in the action
+  // string is replaced with the selected line's content (fzf syntax).
+  action?: Item["action"]
+  // Default icon for plain-text items. Per-line override: embed
+  // `<icon>\t<title>` in the line and the parser splits on tab.
+  icon?: string
+  // Default icon color (hex, e.g. "#22cc22") for plain-text items.
+  // Per-line override: emit `<icon>\t<color>\t<title>` with 3 tab fields.
+  iconColor?: string
   grouped?: boolean
   emptyText?: string
 }

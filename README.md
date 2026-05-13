@@ -4,9 +4,12 @@ A Raycast-style command palette for tmux. Runs on [Bun](https://bun.sh),
 zero runtime dependencies, snappy enough to feel like a native widget
 (~30ms cold start).
 
-Type a few letters, pick a command, hit enter — split a pane, jump to a window,
-detach a session, whatever. Designed to be easy to extend with your own
-palettes.
+Type a few letters, pick a command, hit enter — split a pane, jump to a
+window, detach a session. Then push it further: pop open `htop` or `lazygit`
+mid-session, hotkey a category-filtered palette, pipe `gh pr list` into a
+live PR picker fzf-style, reskin the whole thing to match your terminal.
+Every knob lives in `~/.config/tmux-palette/*.json` — no fork, no source
+edits, no rebuild.
 
 https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593
 
@@ -18,13 +21,14 @@ https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593
 - **Mobile-aware** — [auto-fullscreens](#sizingjson--popup-dimensions) on narrow terminals (Moshi / Blink on iOS)
 - **Themeable** — built-ins (`shades-of-purple`, `dracula`, `tokyo-night`, `minimal`) or [your own colors](#themejson--color-overrides)
 - **One-key TUI launcher** — drop `{ "popup": "htop" }` into any palette item and tmux opens it in a centered popup. Same trick for `btop`, `lazygit`, log tails, `fzf` tools, anything terminal-shaped.
+- **Plug in any program** — point a palette at a script that prints JSON items (Bash, Python, Go, whatever) and the palette shows them. Live GitHub PRs, dev servers, k8s pods — fzf-style pluggability.
 - **AI-agent install** — paste a prompt into Claude Code / Codex / opencode and it's done
 - **No fork required** — every customization lives in `~/.config/tmux-palette/*.json`
 
 ## Install
 
 <details>
-<summary><b>Hand off to an AI agent</b> (recommended — auto-detects your terminal theme)</summary>
+<summary><b>Hand off to an AI agent</b> (auto-detects your terminal theme)</summary>
 
 <br/>
 
@@ -172,10 +176,49 @@ bind -n M-q run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh my-favs"
 
 - `from` — array of item titles to pull from the main commands palette (built-ins + your `commands.json`)
 - `fromCategory` — pull every item from one category
+- `command` — shell command that prints a JSON array of `Item` objects to stdout (see [plugins](#plugins) below)
 - `items` — brand-new items defined inline
 - `title` / `grouped` / `emptyText` — same as built-in palettes
 
-All keys optional. Resolution order: `from` → `fromCategory` → `items`.
+All keys optional. Resolution order: `from` → `fromCategory` → `command` → `items`.
+
+#### Plugins
+
+The `command` field is the plugin escape hatch — fzf-style. Anything
+that prints to stdout becomes a palette. Two output modes:
+
+**JSON mode** — full control. Print a JSON array of `Item` objects:
+
+```json
+// ~/.config/tmux-palette/palettes/github-prs.json
+{
+  "title": "GitHub PRs",
+  "command": "gh pr list --json number,title,url --jq '[.[] | {icon: \"\", title: ((.number|tostring) + \" \" + .title), action: {shell: (\"gh pr view \" + (.number|tostring) + \" --web\")}}]'"
+}
+```
+
+**Plain-text mode** — fzf-style. Print one item per line, define a
+default `action` template at the palette level with `{}` substituted
+for the selected line:
+
+```json
+// ~/.config/tmux-palette/palettes/git-branches.json
+{
+  "title": "Git Branches",
+  "command": "git branch --format='%(refname:short)'",
+  "action": { "tmux": "send-keys 'git checkout {}' Enter" }
+}
+```
+
+This means most "command that prints lines" tools you'd pipe through
+fzf can become tmux-palette palettes with no scripting — just the JSON
+config and an action template.
+
+Write the command in any language, distribute it however you want
+(gist, repo, copy-paste). The plugin runs every time the palette opens
+(no caching), so for expensive calls add your own cache layer. Errors
+are surfaced as a single item in the palette so failures stay visible
+without crashing the popup.
 
 ### `hidden.json` — hide built-in items
 

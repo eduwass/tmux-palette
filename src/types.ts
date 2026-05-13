@@ -11,6 +11,12 @@ export interface ActionContext {
 
 export type Item = {
   icon?: string
+  /**
+   * Optional hex color (e.g. "#22cc22") applied to the icon. When unset,
+   * the theme accent color is used. Useful for status indicators where
+   * the icon glyph stays the same but the color encodes state.
+   */
+  iconColor?: string
   title: string
   description?: string
   shortcut?: string

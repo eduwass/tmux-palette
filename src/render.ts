@@ -1,6 +1,12 @@
 import { charWidth, displayWidth, truncate } from "./text"
 import type { Colors, Item } from "./types"
 
+function hexToFg(hex: string): string | null {
+  const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)
+  if (!m) return null
+  return `\x1b[38;2;${parseInt(m[1]!, 16)};${parseInt(m[2]!, 16)};${parseInt(m[3]!, 16)}m`
+}
+
 export type Row =
   | { kind: "category"; category: string }
   | { kind: "item"; item: Item; itemIndex: number }
@@ -71,7 +77,8 @@ export function renderDefaultItem(item: Item, colors: Colors, active: boolean, b
   const rowBg = active ? colors.selected : colors.panel
   const marker = active ? `${colors.accent}▌${colors.reset}${rowBg}` : " "
   const iconGlyph = item.icon || " "
-  const icon = item.icon ? `${colors.accent}${item.icon}${colors.reset}${rowBg}` : " "
+  const iconColor = (item.iconColor && hexToFg(item.iconColor)) || colors.accent
+  const icon = item.icon ? `${iconColor}${item.icon}${colors.reset}${rowBg}` : " "
   const titleStyle = active ? colors.bold + colors.fg : colors.muted
   const titleStyled = `${titleStyle}${item.title}${colors.reset}${rowBg}`
 
