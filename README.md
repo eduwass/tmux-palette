@@ -17,7 +17,7 @@ https://github.com/user-attachments/assets/3a8f3951-619f-46b4-a180-b9a03ccb8593
 - **Hide built-ins** — declutter the default palette via [`hidden.json`](#hiddenjson--hide-built-in-items)
 - **Mobile-aware** — [auto-fullscreens](#sizingjson--popup-dimensions) on narrow terminals (Moshi / Blink on iOS)
 - **Themeable** — built-ins (`shades-of-purple`, `dracula`, `tokyo-night`, `minimal`) or [your own colors](#themejson--color-overrides)
-- **Popup launcher** — bind palette items to spawn `htop`, log viewers, etc. in their own tmux popup
+- **One-key TUI launcher** — drop `{ "popup": "htop" }` into any palette item and tmux opens it in a centered popup. Same trick for `btop`, `lazygit`, log tails, `fzf` tools, anything terminal-shaped.
 - **AI-agent install** — paste a prompt into Claude Code / Codex / opencode and it's done
 - **No fork required** — every customization lives in `~/.config/tmux-palette/*.json`
 
