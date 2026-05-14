@@ -125,10 +125,27 @@ export function composeSearch(
   padX: number,
   bodyWidth: number,
   colors: Colors,
+  selStart?: number,
+  selEnd?: number,
 ): string {
-  const searchValue = filter || "Search"
-  const searchColor = filter ? colors.fg : colors.muted
-  return `${colors.panel}${" ".repeat(padX)}${colors.accent}▌${searchColor} ${truncate(searchValue, bodyWidth - 2)}${colors.panel}${" ".repeat(padX)}${colors.reset}`
+  const pad = " ".repeat(padX)
+  if (!filter) {
+    return `${colors.panel}${pad}${colors.accent}▌${colors.muted} ${truncate("Search", bodyWidth - 2)}${colors.panel}${pad}${colors.reset}`
+  }
+  const text = truncate(filter, bodyWidth - 2)
+  const hasSelection = selStart !== undefined && selEnd !== undefined && selStart < selEnd
+  if (!hasSelection) {
+    return `${colors.panel}${pad}${colors.accent}▌${colors.fg} ${text}${colors.panel}${pad}${colors.reset}`
+  }
+  // Selection: split body into before / inside / after; inside gets the
+  // theme's selected bg + fg combo (colors.selected). Restore panel bg and
+  // default fg after.
+  const a = Math.max(0, Math.min(selStart!, text.length))
+  const b = Math.max(a, Math.min(selEnd!, text.length))
+  const before = text.slice(0, a)
+  const inside = text.slice(a, b)
+  const after = text.slice(b)
+  return `${colors.panel}${pad}${colors.accent}▌${colors.fg} ${before}${colors.selected}${inside}${colors.panel}${colors.fg}${after}${colors.panel}${pad}${colors.reset}`
 }
 
 function renderListRow(

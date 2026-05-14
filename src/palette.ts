@@ -27,6 +27,8 @@ type NavState = {
   selected: number
   scroll: number
   filter: string
+  filterCursor: number
+  selectionAnchor: number | null
 }
 
 export function definePalette(def: PaletteDef): PaletteDef {
@@ -83,6 +85,20 @@ function parseMouseEvent(key: string): MouseEvent | null {
   }
 }
 
+function wordBack(str: string, from: number): number {
+  let i = from
+  while (i > 0 && /\s/.test(str[i - 1]!)) i--
+  while (i > 0 && /\S/.test(str[i - 1]!)) i--
+  return i
+}
+
+function wordForward(str: string, from: number): number {
+  let i = from
+  while (i < str.length && /\s/.test(str[i]!)) i++
+  while (i < str.length && /\S/.test(str[i]!)) i++
+  return i
+}
+
 export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initialName?: string): Promise<void> {
   // These all swap when navigating between palettes, so they're `let`.
   let currentDef = def
@@ -98,6 +114,9 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   const cmdFile = process.env.TMUX_PALETTE_CMD
 
   let filter = ""
+  let filterCursor = 0
+  // Anchor end of the in-input selection (cursor is the active end). null = no selection.
+  let selectionAnchor: number | null = null
   let selected = currentDef.initialSelected ? Math.max(0, currentDef.initialSelected(items)) : 0
   let scroll = 0
   let rowActions: RowAction[] = []
@@ -129,12 +148,14 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     if (!loader) return
     const next = await loader(name)
     if (!next) return
-    stack.push({ def: currentDef, name: currentName, selected, scroll, filter })
+    stack.push({ def: currentDef, name: currentName, selected, scroll, filter, filterCursor, selectionAnchor })
     await loadDef(next)
     currentName = name
     selected = 0
     scroll = 0
     filter = ""
+    filterCursor = 0
+    selectionAnchor = null
     render()
   }
 
@@ -146,6 +167,8 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     selected = prev.selected
     scroll = prev.scroll
     filter = prev.filter
+    filterCursor = prev.filterCursor
+    selectionAnchor = prev.selectionAnchor
     render()
   }
 
@@ -159,7 +182,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   stdin.setRawMode(true)
   stdin.resume()
   stdin.setEncoding("utf8")
-  stdout.write("\x1b[?1000h\x1b[?1006h\x1b[?25l")
+  stdout.write("\x1b[?1000h\x1b[?1006h")
 
   function renderRowContent(row: Row, isSelected: boolean, bodyWidth: number): string {
     const rowBg = isSelected ? colors.selected : colors.panel
@@ -210,9 +233,12 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     rowActions = body.rowActions
 
     const footerText = buildFooterText(vis.filter(isSelectable).length, emptyText)
+    const sel = selectionAnchor !== null && selectionAnchor !== filterCursor
+      ? { start: Math.min(selectionAnchor, filterCursor), end: Math.max(selectionAnchor, filterCursor) }
+      : undefined
     const inner = [
       header.line,
-      composeSearch(filter, padX, bodyWidth, colors),
+      composeSearch(filter, padX, bodyWidth, colors, sel?.start, sel?.end),
       blank,
       ...body.lines,
       blank,
@@ -220,13 +246,26 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     ]
     const lines = bordered ? inner : [blank, ...inner, blank]
 
+    // Position the real terminal cursor on the search row so it blinks
+    // where the user is typing. Column math matches composeSearch:
+    // padX panel cells + ▌ + space, then filter chars.
+    const searchRow = bordered ? 2 : 3
+    const cursorCol = Math.min(padX + 3 + filterCursor, padX + 3 + Math.max(0, bodyWidth - 2))
+
     // Synchronized output + cursor-home (no clear) so the frame swaps
     // atomically without a blank flash, even when arrow keys repeat fast.
-    stdout.write("\x1b[?2026h\x1b[?25l\x1b[H" + lines.join("\n") + "\x1b[?2026l")
+    // Cursor is hidden during the redraw and re-shown at its final spot;
+    // sync mode makes only the final state visible. OSC 12 tints the
+    // terminal cursor to the active theme's accent — re-emitted each
+    // frame so the theme switcher's live preview updates it too.
+    stdout.write(
+      `\x1b[?2026h\x1b[?25l\x1b[H${lines.join("\n")}` +
+      `\x1b[${searchRow};${cursorCol}H\x1b[5 q\x1b]12;${theme.accent}\x07\x1b[?25h\x1b[?2026l`,
+    )
   }
 
   function cleanup(): void {
-    stdout.write(`${colors.reset}\x1b[?1000l\x1b[?1006l\x1b[?25h\x1b[2J\x1b[H`)
+    stdout.write(`${colors.reset}\x1b[?1000l\x1b[?1006l\x1b[?25h\x1b[0 q\x1b]112\x07\x1b[2J\x1b[H`)
     stdin.setRawMode(false)
     stdin.pause()
   }
@@ -365,6 +404,12 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
 
   function handleEnterOrExit(key: string, vis: Item[]): boolean {
     if (key === "\x1b") {
+      // Esc clears the in-input selection before exiting / going back.
+      if (selectionAnchor !== null) {
+        selectionAnchor = null
+        render()
+        return true
+      }
       escPressed()
       return true
     }
@@ -375,18 +420,117 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     return true
   }
 
+  function selRange(): { start: number; end: number } | null {
+    if (selectionAnchor === null) return null
+    const a = Math.min(selectionAnchor, filterCursor)
+    const b = Math.max(selectionAnchor, filterCursor)
+    return a === b ? null : { start: a, end: b }
+  }
+
+  function deleteSelection(): boolean {
+    const r = selRange()
+    if (!r) {
+      selectionAnchor = null
+      return false
+    }
+    filter = filter.slice(0, r.start) + filter.slice(r.end)
+    filterCursor = r.start
+    selectionAnchor = null
+    return true
+  }
+
+  function extendTo(to: number): void {
+    const target = Math.max(0, Math.min(to, filter.length))
+    if (selectionAnchor === null) selectionAnchor = filterCursor
+    filterCursor = target
+    if (selectionAnchor === filterCursor) selectionAnchor = null
+  }
+
+  function collapseLeft(): void {
+    const r = selRange()
+    if (r) {
+      filterCursor = r.start
+      selectionAnchor = null
+    } else {
+      filterCursor = Math.max(0, filterCursor - 1)
+    }
+  }
+
+  function collapseRight(): void {
+    const r = selRange()
+    if (r) {
+      filterCursor = r.end
+      selectionAnchor = null
+    } else {
+      filterCursor = Math.min(filter.length, filterCursor + 1)
+    }
+  }
+
   function handleEditKey(key: string): boolean {
+    // ---- Cursor movement (clears selection on plain moves; extends on shift) ----
+    if (key === "\x1b[D") { collapseLeft(); return true }
+    if (key === "\x1b[C") { collapseRight(); return true }
+    if (key === "\x1b[H" || key === "\x01") { filterCursor = 0; selectionAnchor = null; return true }
+    if (key === "\x1b[F" || key === "\x05") { filterCursor = filter.length; selectionAnchor = null; return true }
+    // Alt/Ctrl + Left/Right: word-jump. Terminals encode this differently;
+    // handle common forms.
+    if (key === "\x1bb" || key === "\x1b[1;3D" || key === "\x1b[1;5D" || key === "\x1b\x1b[D") {
+      filterCursor = wordBack(filter, filterCursor)
+      selectionAnchor = null
+      return true
+    }
+    if (key === "\x1bf" || key === "\x1b[1;3C" || key === "\x1b[1;5C" || key === "\x1b\x1b[C") {
+      filterCursor = wordForward(filter, filterCursor)
+      selectionAnchor = null
+      return true
+    }
+
+    // ---- Shift + movement: extend selection ----
+    // Modifier numbers: shift=2, shift+alt=4, shift+ctrl=6.
+    if (key === "\x1b[1;2D") { extendTo(filterCursor - 1); return true }
+    if (key === "\x1b[1;2C") { extendTo(filterCursor + 1); return true }
+    if (key === "\x1b[1;2H") { extendTo(0); return true }
+    if (key === "\x1b[1;2F") { extendTo(filter.length); return true }
+    if (key === "\x1b[1;4D" || key === "\x1b[1;6D") { extendTo(wordBack(filter, filterCursor)); return true }
+    if (key === "\x1b[1;4C" || key === "\x1b[1;6C") { extendTo(wordForward(filter, filterCursor)); return true }
+
+    // ---- Edits — change filter, reset list selection + scroll ----
     if (key === "\x7f" || key === "\x08") {
-      filter = filter.slice(0, -1)
+      if (!deleteSelection()) {
+        if (filterCursor === 0) return true
+        filter = filter.slice(0, filterCursor - 1) + filter.slice(filterCursor)
+        filterCursor--
+      }
+    } else if (key === "\x1b[3~") {
+      // Delete: drop char at cursor (or selection if any).
+      if (!deleteSelection()) {
+        if (filterCursor >= filter.length) return true
+        filter = filter.slice(0, filterCursor) + filter.slice(filterCursor + 1)
+      }
     } else if (key === "\x1b\x7f" || key === "\x1b\x08" || key === "\x17") {
-      // Alt+Backspace / Ctrl+W: drop trailing whitespace, then trailing word.
-      filter = filter.replace(/\s+$/, "").replace(/\S+$/, "")
-    } else if (key === "\x15" || key === "\x0b") {
-      // Ctrl+U / Ctrl+K: clear filter. (Cmd+Backspace arrives as \x15 in
-      // many terminals; users can remap via their terminal's keybind config.)
-      filter = ""
+      // Alt+Backspace / Ctrl+W: delete word before cursor (or selection).
+      if (!deleteSelection()) {
+        const start = wordBack(filter, filterCursor)
+        filter = filter.slice(0, start) + filter.slice(filterCursor)
+        filterCursor = start
+      }
+    } else if (key === "\x15") {
+      // Ctrl+U: kill from start to cursor (or selection). At cursor=end with
+      // no selection this clears the line — covers Cmd+Backspace remaps.
+      if (!deleteSelection()) {
+        filter = filter.slice(filterCursor)
+        filterCursor = 0
+      }
+    } else if (key === "\x0b") {
+      // Ctrl+K: kill from cursor to end (or selection).
+      if (!deleteSelection()) {
+        filter = filter.slice(0, filterCursor)
+      }
     } else if (key.length === 1 && key >= " ") {
-      filter += key
+      // Typing replaces selection (if any), then inserts.
+      deleteSelection()
+      filter = filter.slice(0, filterCursor) + key + filter.slice(filterCursor)
+      filterCursor++
     } else {
       return false
     }
@@ -414,7 +558,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
 
   process.on("exit", () => {
     try {
-      stdout.write("\x1b[?1000l\x1b[?1006l\x1b[?25h")
+      stdout.write("\x1b[?1000l\x1b[?1006l\x1b[?25h\x1b[0 q\x1b]112\x07")
       stdin.setRawMode(false)
     } catch {}
   })
