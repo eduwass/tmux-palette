@@ -38,6 +38,13 @@ describe("selection helpers", () => {
     expect(step(items, 0, 1)).toBe(2)
     expect(step(items, 2, -1)).toBe(0)
   })
+
+  test("can stop at list ends instead of wrapping", () => {
+    expect(step(items, 2, 1, false)).toBe(2)
+    expect(step(items, 0, -1, false)).toBe(0)
+    expect(step(items, 0, 1, false)).toBe(2)
+    expect(step(items, 2, -1, false)).toBe(0)
+  })
 })
 
 describe("buildRows", () => {

@@ -17,7 +17,7 @@ import {
 } from "./render"
 import { makeColors, resolveActiveTheme } from "./theme"
 import type { ActionContext, Item, PaletteDef, PopupAction } from "./types"
-import { userAliases, userShortcuts, userSizing } from "./userConfig"
+import { userAliases, userConfig, userShortcuts, userSizing } from "./userConfig"
 
 export type PaletteLoader = (name: string) => Promise<PaletteDef | null>
 
@@ -387,8 +387,9 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   }
 
   function handleMouse(button: number, x: number, y: number, kind: string, vis: Item[]): void {
-    if (button === 64) selected = step(vis, selected, -1)
-    else if (button === 65) selected = step(vis, selected, 1)
+    const wrapAtListEnds = userConfig().wrapAtListEnds ?? true
+    if (button === 64) selected = step(vis, selected, -1, wrapAtListEnds)
+    else if (button === 65) selected = step(vis, selected, 1, wrapAtListEnds)
     else if (button === 0 && kind === "M") handleMouseClick(x, y, vis)
     render()
   }
@@ -398,7 +399,8 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     if (delta === undefined) return false
     const dir = delta > 0 ? 1 : -1
     const count = Math.abs(delta)
-    for (let i = 0; i < count; i++) selected = step(vis, selected, dir)
+    const wrapAtListEnds = userConfig().wrapAtListEnds ?? true
+    for (let i = 0; i < count; i++) selected = step(vis, selected, dir, wrapAtListEnds)
     return true
   }
 
