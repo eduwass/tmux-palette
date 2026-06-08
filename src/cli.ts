@@ -4,7 +4,7 @@ import { commands } from "./palettes/commands"
 import { findPane } from "./palettes/find-pane"
 import { movePane } from "./palettes/move-pane"
 import { themes } from "./palettes/themes"
-import { resolveActiveTheme } from "./theme"
+import { resolveActiveTheme, tmuxBodyStyle, tmuxColor } from "./theme"
 import type { Item, PaletteDef } from "./types"
 import { userCommands, userHidden, userPalette, userSizing } from "./userConfig"
 
@@ -196,8 +196,8 @@ if (args.includes("--measure")) {
   // blend into the surrounding terminal instead of leaking either the
   // panel color outward or the terminal black inward.
   const theme = resolveActiveTheme(def.theme)
-  const bodyStyle = sizing.bodyStyle ?? `bg=${theme.panel}`
-  const borderStyle = sizing.borderStyle ?? `fg=${theme.accent},bg=default`
+  const bodyStyle = sizing.bodyStyle ?? tmuxBodyStyle(theme)
+  const borderStyle = sizing.borderStyle ?? `fg=${tmuxColor(theme.accent)},bg=default`
 
   const desired = items.length + cats + 7
   let rows = Math.min(desired, maxHeight)

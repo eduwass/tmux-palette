@@ -32,7 +32,7 @@ first to discuss before writing code.
 - **Custom palettes** — define your own with [a single JSON file](#custom-palettes), bind to any key
 - **Hide built-ins** — declutter the default palette via [`hidden.json`](#hiddenjson--hide-built-in-items)
 - **Mobile-aware** — [auto-fullscreens](#sizingjson--popup-dimensions-and-borders) on narrow terminals (Moshi / Blink on iOS)
-- **Curated themes** — 12 built-in themes including Shades of Purple, Dracula, Tokyo Night, Catppuccin, Gruvbox, Nord, and Solarized. [Pick one with live preview](#themes), or [drop your own](#custom-themes)
+- **Curated themes** — 13 built-in themes including Shades of Purple, Dracula, Tokyo Night, Catppuccin, Gruvbox, Nord, Solarized, and a transparent `Terminal` theme that follows your terminal colors. [Pick one with live preview](#themes), or [drop your own](#custom-themes)
 - **Popup tools** — use `{ "popup": "htop" }` to open tools like `btop`, `lazygit`, log tails, or `fzf` scripts in a tmux popup
 - **Scriptable sources** — point a palette at a shell command that prints JSON or one item per line. Examples live in [`examples/`](examples)
 - **Small codebase** — roughly 2k LOC, so it is easy to audit, fork, or patch locally
@@ -430,6 +430,44 @@ Custom themes show up in the **Switch Theme...** picker alongside the
 bundled ones (tagged `custom`). The filename becomes the slug — drop
 `my-theme.json` → reference it as `{ "name": "my-theme" }` in
 `theme.json`, or just pick it from the switcher.
+
+#### Terminal-native colors
+
+Any color field accepts more than a hex code:
+
+- `"transparent"` — falls back to the terminal default. On `bg`/`panel`/
+  `selected` the terminal's own background (transparency or image) shows
+  through; on `fg`/`muted`/`accent` it uses the terminal's default text color.
+- A palette color **name** — `"black"`, `"red"`, `"green"`, `"yellow"`,
+  `"blue"`, `"magenta"`, `"cyan"`, `"white"`, or any of those with a
+  `"bright-"` prefix (`"bright-black"` is the usual gray). These render with the
+  terminal's *own* configured colors, so the palette tracks whatever
+  colorscheme you're running instead of pinning a fixed hex.
+
+The bundled `terminal` theme (`{ "name": "terminal" }`) leans on these:
+transparent backgrounds, default-foreground item and secondary text, `blue`
+icons and title, and a highlighted row that turns `yellow` — so it adapts to
+your terminal's palette automatically in both light and dark modes.
+
+There are also two optional foreground fields. `selectedFg` gives the
+highlighted row a single distinct color for its icon, title, marker, and
+shortcut; when omitted the active row keeps the defaults (title on `fg`,
+marker/icon on `accent`). `titleFg` colors the popup title in the header
+(e.g. "Commands") independently of the search input; when omitted the title
+uses `fg`.
+
+```jsonc
+// ~/.config/tmux-palette/themes/ghost.json — terminal-native theme
+{
+  "bg": "transparent",
+  "panel": "transparent",
+  "selected": "transparent",
+  "fg": "transparent",
+  "muted": "bright-black",
+  "accent": "blue",
+  "selectedFg": "yellow"
+}
+```
 
 ### Category hotkeys
 

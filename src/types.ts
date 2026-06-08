@@ -62,6 +62,20 @@ export type Theme = {
   fg: string
   muted: string
   accent: string
+  /**
+   * Foreground for the highlighted row (icon, title, marker, shortcut).
+   * When unset, the row keeps its default colors — title uses `fg`, while
+   * the marker/icon/shortcut use `accent`. Set it to give the active row a
+   * single distinct highlight color (e.g. yellow) without affecting the
+   * header title or search input, which stay on `fg`.
+   */
+  selectedFg?: string
+  /**
+   * Foreground for the popup title in the header (e.g. "Commands"). When
+   * unset, the title uses `fg`. Set it to color the title independently of
+   * the search input, which stays on `fg`.
+   */
+  titleFg?: string
 }
 
 /** Pre-built ANSI escape sequences derived from a Theme. Pass to renderItem. */
@@ -72,6 +86,10 @@ export type Colors = {
   fg: string
   muted: string
   accent: string
+  /** Highlight fg for the active row, or "" to fall back to fg/accent. */
+  selectedFg: string
+  /** Fg for the header title, or "" to fall back to fg. */
+  titleFg: string
   reset: string
   bold: string
 }
