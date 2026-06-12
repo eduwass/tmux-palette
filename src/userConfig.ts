@@ -83,6 +83,17 @@ export function userSizing(): Sizing {
   return _sizing
 }
 
+export type UserConfig = {
+  // When true, moving past the first/last selectable item wraps around.
+  // Default: true.
+  wrapAtListEnds?: boolean
+}
+let _config: UserConfig | null = null
+export function userConfig(): UserConfig {
+  if (!_config) _config = loadJSON<UserConfig>("config.json", {})
+  return _config
+}
+
 export type CustomPalette = {
   title?: string
   items?: Item[]
