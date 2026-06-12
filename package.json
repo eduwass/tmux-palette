@@ -1,27 +1,28 @@
 {
   "name": "tmux-palette",
   "version": "0.3.0",
-  "type": "module",
   "description": "Raycast-style command palette for tmux — fast, scriptable, easy to extend",
   "bin": {
     "tmux-palette": "./bin/tmux-palette.sh"
   },
+  "type": "module",
   "scripts": {
-    "start": "bun src/cli.ts",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "check:audit": "fallow audit",
+    "check:format": "oxfmt --check",
+    "check:types": "tsc --noEmit",
     "format": "oxfmt --write",
-    "format:check": "oxfmt --check",
-    "check:dead-code": "fallow dead-code",
-    "check:dupes": "fallow dupes"
+    "health": "fallow health",
+    "start": "bun src/cli.ts",
+    "test": "bun test"
   },
+  "dependencies": {},
   "devDependencies": {
     "@types/bun": "latest",
     "fallow": "^2.69.0",
+    "lefthook": "^2.1.9",
     "oxfmt": "^0.54.0"
   },
   "peerDependencies": {
     "typescript": "^5"
-  },
-  "dependencies": {}
+  }
 }

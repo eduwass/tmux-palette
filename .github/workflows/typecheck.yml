@@ -13,6 +13,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun test
-      - run: bun run typecheck
-      - run: bun run check:dead-code
-      - run: bun run check:dupes
+      - run: bun run check:types
+      - run: bun run check:format
+      - run: bun run check:audit
