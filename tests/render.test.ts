@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test"
 import {
   buildRows,
+  composeHeader,
   composeListBody,
   firstSelectable,
   isSelectable,
+  renderDefaultItem,
   step,
   type Row,
 } from "../src/render"
@@ -23,6 +25,8 @@ const colors: Colors = {
   fg: "",
   muted: "",
   accent: "",
+  selectedFg: "",
+  titleFg: "",
   reset: "",
   bold: "",
 }
@@ -48,6 +52,53 @@ describe("buildRows", () => {
 
   test("omits category rows while filtering", () => {
     expect(buildRows(items, true, true).map((r) => r.kind)).toEqual(["item", "item", "item"])
+  })
+})
+
+describe("composeHeader title color", () => {
+  const base: Colors = {
+    bg: "", panel: "", selected: "", fg: "FG", muted: "MUT",
+    accent: "ACC", selectedFg: "", titleFg: "", reset: "", bold: "",
+  }
+
+  test("title uses fg when titleFg unset", () => {
+    expect(composeHeader("Commands", 40, 1, 38, base).line).toContain("FGCommands")
+  })
+
+  test("title uses titleFg when set", () => {
+    const line = composeHeader("Commands", 40, 1, 38, { ...base, titleFg: "MAG" }).line
+    expect(line).toContain("MAGCommands")
+    expect(line).not.toContain("FGCommands")
+  })
+})
+
+describe("renderDefaultItem active highlight", () => {
+  // Sentinel color codes so we can assert which field colored each fragment.
+  const c: Colors = {
+    bg: "", panel: "", selected: "", fg: "FG", muted: "MUT",
+    accent: "ACC", selectedFg: "", titleFg: "", reset: "", bold: "",
+  }
+  const item: Item = { title: "Split", icon: "I", shortcut: "C-s", action }
+
+  test("active row uses accent (icon/marker) and fg (title) when selectedFg unset", () => {
+    const out = renderDefaultItem(item, c, true, 40)
+    expect(out).toContain("ACC▌") // marker
+    expect(out).toContain("ACC") // icon + active shortcut
+    expect(out).toContain("FGSplit") // bold "" + fg + title
+    expect(out).not.toContain("SEL")
+  })
+
+  test("active row uses selectedFg for icon, marker, title, and shortcut when set", () => {
+    const out = renderDefaultItem(item, { ...c, selectedFg: "SEL" }, true, 40)
+    expect(out).toContain("SEL▌") // marker
+    expect(out).toContain("SELSplit") // title
+    expect(out.match(/SEL/g)?.length).toBeGreaterThanOrEqual(3) // marker + icon + title + shortcut
+  })
+
+  test("inactive icon stays on accent regardless of selectedFg", () => {
+    const out = renderDefaultItem(item, { ...c, selectedFg: "SEL" }, false, 40)
+    expect(out).toContain("ACC") // icon uses accent on inactive rows
+    expect(out).toContain("MUTSplit") // inactive title is muted
   })
 })
 

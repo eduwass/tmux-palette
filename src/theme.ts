@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { bundledThemeMap, bundledThemes, type BundledTheme } from "./themes-bundled"
 import type { Colors, Theme } from "./types"
+import { userSizing } from "./userConfig"
 
 const CONFIG_DIR =
   `${process.env.XDG_CONFIG_HOME ?? `${process.env.HOME ?? ""}/.config`}/tmux-palette`
@@ -72,6 +73,7 @@ function resolveTheme(theme: Theme | string | undefined): Theme {
     if (user) return user
     const bundled = bundledThemeMap[theme]
     if (bundled) return bundled
+
     throw new Error(`Unknown theme: ${theme}`)
   }
   return theme
@@ -135,15 +137,90 @@ function bg(hex: string): string {
   return `\x1b[48;2;${r};${g};${b}m`
 }
 
+/** Sentinel a theme field can take to fall back to the terminal default
+ *  (transparent background / default foreground) instead of a hex color. */
+const TRANSPARENT = "transparent";
+
+/** The 8 ANSI palette color names → their base index. A "bright-" prefix
+ *  selects the bright variant (e.g. "bright-black" is the usual gray). */
+const ANSI_BASE: Record<string, number> = {
+  black: 0, red: 1, green: 2, yellow: 3,
+  blue: 4, magenta: 5, cyan: 6, white: 7,
+}
+
+/** Parse a palette color name like "blue" or "bright-black". Returns null for
+ *  hex / "transparent" / anything unrecognized so callers can fall through. */
+function namedColor(value: string): { base: string; idx: number; bright: boolean } | null {
+  const bright = value.startsWith("bright-")
+  const base = bright ? value.slice(7) : value
+  const idx = ANSI_BASE[base]
+  return idx === undefined ? null : { base, idx, bright }
+}
+
+/** Background ANSI code. "transparent" → default bg (\x1b[49m); a palette name
+ *  → the terminal's own color (\x1b[4Xm / \x1b[10Xm); otherwise a hex truecolor.
+ *  Routing through this keeps rgb() from ever seeing a non-hex value. */
+function bgOrDefault(value: string): string {
+  if (value === TRANSPARENT) return "\x1b[49m"
+  const n = namedColor(value)
+  if (n) return `\x1b[${(n.bright ? 100 : 40) + n.idx}m`
+  return bg(value)
+}
+
+/** Foreground ANSI code. "transparent" → default fg (\x1b[39m); a palette name
+ *  → the terminal's own color (\x1b[3Xm / \x1b[9Xm); otherwise a hex truecolor. */
+function fgOrDefault(value: string): string {
+  if (value === TRANSPARENT) return "\x1b[39m"
+  const n = namedColor(value)
+  if (n) return `\x1b[${(n.bright ? 90 : 30) + n.idx}m`
+  return fg(value)
+}
+
+/** Translate a theme color into a tmux style value: "transparent" → "default",
+ *  a palette name → tmux's form ("blue" / "brightblack"), hex passes through. */
+export function tmuxColor(value: string): string {
+  if (value === TRANSPARENT) return "default"
+  const n = namedColor(value)
+  if (n) return n.bright ? `bright${n.base}` : n.base
+  return value
+}
+
+/** OSC 12 sequence tinting the terminal cursor to the accent, or "" when the
+ *  accent is a palette name / transparent — those leave the cursor on the
+ *  terminal's own configured cursor color rather than forcing an X11 name. */
+export function cursorTint(theme: Theme): string {
+  return /^#?[0-9a-f]{6}$/i.test(theme.accent) ? `\x1b]12;${theme.accent}\x07` : ""
+}
+
 export function makeColors(theme: Theme): Colors {
   return {
-    bg: bg(theme.bg),
-    panel: bg(theme.panel),
-    selected: bg(theme.selected) + fg(theme.fg),
-    fg: fg(theme.fg),
-    muted: fg(theme.muted),
-    accent: fg(theme.accent),
+    bg: bgOrDefault(theme.bg),
+    panel: bgOrDefault(theme.panel),
+    selected: bgOrDefault(theme.selected) + fgOrDefault(theme.fg),
+    fg: fgOrDefault(theme.fg),
+    muted: fgOrDefault(theme.muted),
+    accent: fgOrDefault(theme.accent),
+    selectedFg: theme.selectedFg ? fgOrDefault(theme.selectedFg) : "",
+    titleFg: theme.titleFg ? fgOrDefault(theme.titleFg) : "",
     reset: "\x1b[0m",
     bold: "\x1b[1m",
   }
+}
+
+/** tmux display-popup body style (-s). Resolves the panel through tmuxColor so
+ *  transparent → bg=default, a palette name → the terminal's color, hex → hex. */
+export function tmuxBodyStyle(theme: Theme): string {
+  return `bg=${tmuxColor(theme.panel)}`
+}
+
+/** Builds the tmux display-popup style flags: -B + body style (-s) when there
+ *  is no border, the -b/-s/-S triplet otherwise. `borderOverride` (a per-action
+ *  `border` setting) wins over sizing.popupBorder. */
+export function popupFlags(theme: Theme, borderOverride?: string): string {
+  const sizing = userSizing()
+  const popupBorder = borderOverride ?? sizing.popupBorder ?? "none"
+  const bodyStyle = sizing.popupBodyStyle ?? tmuxBodyStyle(theme)
+  if (popupBorder === "none") return `-B -s '${bodyStyle}'`
+  const borderStyle = sizing.popupBorderStyle ?? `fg=${tmuxColor(theme.accent)},bg=default`
+  return `-b ${popupBorder} -s '${bodyStyle}' -S '${borderStyle}'`
 }

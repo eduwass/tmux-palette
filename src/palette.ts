@@ -15,7 +15,7 @@ import {
   type Row,
   type RowAction,
 } from "./render"
-import { makeColors, resolveActiveTheme } from "./theme"
+import { cursorTint, makeColors, popupFlags, resolveActiveTheme } from "./theme"
 import type { ActionContext, Item, PaletteDef, PopupAction } from "./types"
 import { userAliases, userShortcuts, userSizing } from "./userConfig"
 
@@ -260,7 +260,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     // frame so the theme switcher's live preview updates it too.
     stdout.write(
       `\x1b[?2026h\x1b[?25l\x1b[H${lines.join("\n")}` +
-      `\x1b[${searchRow};${cursorCol}H\x1b[5 q\x1b]12;${theme.accent}\x07\x1b[?25h\x1b[?2026l`,
+      `\x1b[${searchRow};${cursorCol}H\x1b[5 q${cursorTint(theme)}\x1b[?25h\x1b[?2026l`,
     )
   }
 
@@ -273,18 +273,6 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   function exitNow(): never {
     cleanup()
     process.exit(0)
-  }
-
-  // Builds the tmux display-popup flags for a { popup } action: -B + body
-  // style if no border, -b/-s/-S triplet otherwise. Per-action `border`
-  // override wins over sizing.popupBorder.
-  function buildPopupFlags(borderOverride?: string): string {
-    const sizing = userSizing()
-    const popupBorder = borderOverride ?? sizing.popupBorder ?? "none"
-    const bodyStyle = sizing.popupBodyStyle ?? `bg=${theme.panel}`
-    if (popupBorder === "none") return `-B -s '${bodyStyle}'`
-    const borderStyle = sizing.popupBorderStyle ?? `fg=${theme.accent},bg=default`
-    return `-b ${popupBorder} -s '${bodyStyle}' -S '${borderStyle}'`
   }
 
   // Builds a shell expression that resolves a "80%" / "80" size spec into
@@ -314,7 +302,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     const bin = process.env.TMUX_PALETTE_BIN ?? "tmux-palette"
     // The trailing relaunch uses `run-shell -b` so tmux returns immediately;
     // the wrapper script itself opens a new display-popup for the palette.
-    return `tmux display-popup -E ${buildPopupFlags(action.border)} -h ${hExpr} -w ${wExpr} ${action.popup}; tmux run-shell -b '${bin} ${relaunchName}'`
+    return `tmux display-popup -E ${popupFlags(theme, action.border)} -h ${hExpr} -w ${wExpr} ${action.popup}; tmux run-shell -b '${bin} ${relaunchName}'`
   }
 
   function dispatchPopupAction(action: PopupAction): never {

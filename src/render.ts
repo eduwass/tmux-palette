@@ -75,17 +75,22 @@ function descriptionFragment(item: Item, colors: Colors, rowBg: string): { style
 function shortcutFragment(item: Item, colors: Colors, active: boolean, rowBg: string): { styled: string; text: string } {
   const text = item.shortcut ?? ""
   if (!text) return { styled: "", text }
-  const color = active ? colors.accent : colors.muted
+  const color = active ? (colors.selectedFg || colors.accent) : colors.muted
   return { styled: `${color}${text}${colors.reset}${rowBg}`, text }
 }
 
 export function renderDefaultItem(item: Item, colors: Colors, active: boolean, bodyWidth: number): string {
   const rowBg = active ? colors.selected : colors.panel
-  const marker = active ? `${colors.accent}▌${colors.reset}${rowBg}` : " "
+  // On the active row, selectedFg (when set) gives icon/marker/title/shortcut a
+  // single highlight color. When unset it falls back to today's colors so other
+  // themes are unchanged: marker/icon use accent, title uses fg.
+  const activeHi = colors.selectedFg || colors.accent
+  const marker = active ? `${activeHi}▌${colors.reset}${rowBg}` : " "
   const iconGlyph = item.icon || " "
-  const iconColor = (item.iconColor && hexToFg(item.iconColor)) || colors.accent
+  const iconColor =
+    (item.iconColor && hexToFg(item.iconColor)) || (active ? activeHi : colors.accent)
   const icon = item.icon ? `${iconColor}${item.icon}${colors.reset}${rowBg}` : " "
-  const titleStyle = active ? colors.bold + colors.fg : colors.muted
+  const titleStyle = active ? colors.bold + (colors.selectedFg || colors.fg) : colors.muted
   const titleStyled = `${titleStyle}${item.title}${colors.reset}${rowBg}`
 
   const chip = aliasChip(item, colors, rowBg)
@@ -112,7 +117,8 @@ export function composeHeader(
   const headerR = "esc"
   const headerRW = displayWidth(headerR)
   const headerGap = Math.max(0, bodyWidth - displayWidth(title) - headerRW)
-  const line = `${colors.panel}${" ".repeat(padX)}${colors.bold}${colors.fg}${title}${colors.reset}${colors.panel}${" ".repeat(headerGap)}${colors.muted}${headerR}${colors.panel}${" ".repeat(padX)}${colors.reset}`
+  const titleFg = colors.titleFg || colors.fg
+  const line = `${colors.panel}${" ".repeat(padX)}${colors.bold}${titleFg}${title}${colors.reset}${colors.panel}${" ".repeat(headerGap)}${colors.muted}${headerR}${colors.panel}${" ".repeat(padX)}${colors.reset}`
   return {
     line,
     escX1: Math.max(1, width - padX - headerRW),

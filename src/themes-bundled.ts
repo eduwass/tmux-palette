@@ -54,6 +54,15 @@ export const bundledThemes: BundledTheme[] = [
     bg: "#0b0e14", panel: "#242e41", selected: "#3f5072",
     fg: "#bfbdb6", muted: "#98958a", accent: "#53bdfa",
   }},
+  // Fully terminal-native: backgrounds are transparent (terminal shows
+  // through), entry labels and muted text use the terminal's own foreground so
+  // they stay legible on any light or dark scheme, icons/marker/title use the
+  // terminal blue, and the highlighted row turns the terminal yellow.
+  { slug: "terminal", name: "Terminal", theme: {
+    bg: "transparent", panel: "transparent", selected: "transparent",
+    fg: "transparent", muted: "transparent", accent: "blue",
+    selectedFg: "yellow", titleFg: "blue",
+  }},
 ]
 
 export const bundledThemeMap: Record<string, Theme> =
