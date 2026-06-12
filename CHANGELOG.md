@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.0 - 2026-06-12
+
+- New bundled "Terminal" theme: transparent backgrounds and terminal-native ANSI colors, so the palette follows your terminal's own color scheme. Pick it via Switch Theme... or `{ "name": "terminal" }` in `theme.json`.
+- Theme color fields now accept `transparent` (the terminal default) and named ANSI colors (`blue`, `bright-black`, etc.) alongside hex, in any built-in, `theme.json`, or custom theme.
+- New optional theme fields: `selectedFg` (active-row highlight) and `titleFg` (header title color).
+
 ## v0.2.1 - 2026-05-14
 
 - Fix: typing an auto-alias (e.g. `ns` for "New Session") now ranks the aliased item first instead of getting outranked by items that just happen to contain the query inside their category (e.g. "Detach" matching via "Sessio**ns**").
