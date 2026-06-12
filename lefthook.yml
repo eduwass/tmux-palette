@@ -1,0 +1,10 @@
+pre-commit:
+  jobs:
+    - name: format
+      glob: "*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,md}"
+      run: bun run format {staged_files}
+      stage_fixed: true
+    - name: check types
+      run: bun run check:types
+    - name: audit with fallow
+      run: bun run check:audit
