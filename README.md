@@ -105,6 +105,7 @@ set -g @plugin 'eduwass/tmux-palette'
 set -g @palette-key 'C-Space'             # optional, default: C-Space (no-prefix)
 set -g @palette-find-pane-key 'M-f'       # optional, no binding by default
 set -g @palette-move-pane-key 'M-m'       # optional, no binding by default
+set -g @palette-vim-up-down 'on'          # optional, default off; 'on' adds Ctrl+K/Ctrl+J up/down
 ```
 
 Then `prefix + I` (TPM's install key) to install. TPM clones the repo,
@@ -188,7 +189,9 @@ Constraints
 ## Usage
 
 - **Type** to filter. Multi-word search is supported (`split horiz`).
-- **Up/Down arrows** or **Ctrl+P / Ctrl+N** to move selection.
+- **Up/Down arrows** or **Ctrl+P / Ctrl+N** to move selection. Set
+  `@palette-vim-up-down 'on'` to also navigate with **Ctrl+K / Ctrl+J** (vim);
+  default off keeps `Ctrl+K` as kill-to-end in the search box.
 - **Enter** to run the selected command.
 - **Esc** to cancel.
 - **Mouse** works too — click rows, scroll the wheel.

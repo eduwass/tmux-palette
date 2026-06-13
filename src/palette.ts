@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs"
 import { dispatchToFile } from "./dispatch"
 import { defaultFilter } from "./fuzzy"
+import { tmux } from "./tmux"
 import {
   buildRows,
   composeFooter,
@@ -63,13 +64,36 @@ function buildFooterText(selectableCount: number, emptyText: string): string {
   return `enter select   up/down move   ${selectableCount} ${noun}`
 }
 
-const NAV_KEYS: Record<string, number> = {
-  "\x1b[A": -1,
-  "\x10": -1,
-  "\x1b[B": 1,
-  "\x0e": 1,
-  "\x1b[5~": -10,
-  "\x1b[6~": 10,
+// Up/down navigation keys → step delta. Arrows, emacs (Ctrl+P/Ctrl+N) and
+// PageUp/Down are always on. Vim keys (Ctrl+K up / Ctrl+J down) are opt-in
+// via the `@palette-vim-up-down on` tmux option (default off = emacs only).
+const EMACS_NAV_KEYS: Record<string, number> = {
+  "\x1b[A": -1, // Up arrow
+  "\x10": -1, // Ctrl+P (emacs)
+  "\x1b[B": 1, // Down arrow
+  "\x0e": 1, // Ctrl+N (emacs)
+  "\x1b[5~": -10, // PageUp
+  "\x1b[6~": 10, // PageDown
+}
+
+// Folded in when vim up/down is enabled. handleNavigationKey runs before
+// handleEditKey, so an enabled Ctrl+K takes over from the search box's
+// kill-to-end-of-line edit (Ctrl+U / Ctrl+W still delete in the input).
+const VIM_NAV_KEYS: Record<string, number> = {
+  "\x0b": -1, // Ctrl+K → up
+  "\x0a": 1, // Ctrl+J → down
+}
+
+// Always returns a fresh object so callers can't mutate the shared defaults.
+export function buildNavKeys(vimUpDown: boolean): Record<string, number> {
+  return vimUpDown ? { ...EMACS_NAV_KEYS, ...VIM_NAV_KEYS } : { ...EMACS_NAV_KEYS }
+}
+
+// Reads `@palette-vim-up-down` at palette launch. Truthy: on / 1 / true / yes
+// (case-insensitive); anything else (incl. unset) → off.
+function vimUpDownEnabled(): boolean {
+  const v = tmux(["show-option", "-gqv", "@palette-vim-up-down"]).trim().toLowerCase()
+  return v === "on" || v === "1" || v === "true" || v === "yes"
 }
 
 type MouseEvent = { button: number; x: number; y: number; kind: string }
@@ -112,6 +136,9 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   let emptyText = def.emptyText ?? "No results"
 
   const cmdFile = process.env.TMUX_PALETTE_CMD
+
+  // Up/down key map for this run (vim keys folded in per @palette-vim-up-down).
+  const navKeys = buildNavKeys(vimUpDownEnabled())
 
   let filter = ""
   let filterCursor = 0
@@ -382,7 +409,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   }
 
   function handleNavigationKey(key: string, vis: Item[]): boolean {
-    const delta = NAV_KEYS[key]
+    const delta = navKeys[key]
     if (delta === undefined) return false
     const dir = delta > 0 ? 1 : -1
     const count = Math.abs(delta)
