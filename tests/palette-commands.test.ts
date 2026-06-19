@@ -5,16 +5,23 @@ function items() {
   return Array.isArray(commands.items) ? commands.items : []
 }
 
-function tmuxOf(title: string): string {
+function hostCommandOf(title: string): string {
   const it = items().find((i) => i.title === title)
   if (!it) throw new Error(`no item titled ${title}`)
-  if (!("tmux" in it.action)) throw new Error(`item ${title} has no tmux action`)
-  return it.action.tmux
+  if ("host" in it.action) return it.action.host
+  if ("tmux" in it.action) return it.action.tmux
+  throw new Error(`item ${title} has no host action`)
+}
+
+function hostCommand(action: ReturnType<typeof items>[number]["action"]): string | null {
+  if ("host" in action) return action.host
+  if ("tmux" in action) return action.tmux
+  return null
 }
 
 describe("commands palette", () => {
   test("New Session creates and switches to the new session", () => {
-    const cmd = tmuxOf("New Session")
+    const cmd = hostCommandOf("New Session")
     expect(cmd).toContain("new-session")
     expect(cmd).toContain("switch-client")
   })
@@ -25,8 +32,8 @@ describe("commands palette", () => {
   test("no tmux command-prompt template reuses %% (use %1 instead)", () => {
     const offenders: string[] = []
     for (const it of items()) {
-      if (!("tmux" in it.action)) continue
-      const cmd = it.action.tmux
+      const cmd = hostCommand(it.action)
+      if (!cmd) continue
       if (!cmd.includes("command-prompt")) continue
       const count = (cmd.match(/%%/g) ?? []).length
       if (count > 1) offenders.push(`${it.title}: ${cmd}`)

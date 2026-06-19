@@ -1,15 +1,18 @@
 import { spawnSync } from "node:child_process"
+import { herdrHost } from "./hosts/herdr"
+import { tmuxBodyStyle, tmuxColor, tmuxHost } from "./hosts/tmux"
 import { runPalette } from "./palette"
-import { commands } from "./palettes/commands"
-import { findPane } from "./palettes/find-pane"
-import { movePane } from "./palettes/move-pane"
+import { createCommands } from "./palettes/commands"
+import { createFindPane } from "./palettes/find-pane"
+import { createMovePane } from "./palettes/move-pane"
 import { themes } from "./palettes/themes"
-import { resolveActiveTheme, tmuxBodyStyle, tmuxColor } from "./theme"
+import { resolveActiveTheme } from "./theme"
 import type { Item, PaletteDef } from "./types"
 import { userCommands, userHidden, userPalette, userSizing } from "./userConfig"
 
 function substituteTemplate(action: Item["action"], value: string): Item["action"] {
   if ("shell" in action) return { shell: action.shell.replace(/\{\}/g, value) }
+  if ("host" in action) return { host: action.host.replace(/\{\}/g, value) }
   if ("tmux" in action) return { tmux: action.tmux.replace(/\{\}/g, value) }
   if ("popup" in action) return { ...action, popup: action.popup.replace(/\{\}/g, value) }
   return action
@@ -96,17 +99,19 @@ const DEFAULT_PAD_X = 3
 // 80 is the classic terminal width; anything below has too little room
 // for a padded popup to feel good. Set to 0 in sizing.json to disable.
 const DEFAULT_MOBILE_WIDTH = 80
+const activeHost = process.env.PALETTE_HOST === "herdr" ? herdrHost : tmuxHost
 
 const palettes: Record<string, PaletteDef> = {
-  commands,
-  "find-pane": findPane,
-  "move-pane": movePane,
+  commands: createCommands(activeHost),
+  "find-pane": createFindPane(activeHost),
+  "move-pane": createMovePane(activeHost),
   themes,
 }
 
 async function buildCustomPalette(name: string): Promise<PaletteDef | null> {
   const custom = userPalette(name)
   if (!custom) return null
+  const commands = palettes.commands!
   const baseCommands: Item[] =
     typeof commands.items === "function" ? await commands.items() : commands.items
   const allMain: Item[] = [...baseCommands, ...userCommands()]

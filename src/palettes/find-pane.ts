@@ -1,87 +1,16 @@
 import { definePalette } from "../palette"
 import { multiFuzzyScore } from "../fuzzy"
-import { tmux, tmuxQuote } from "../tmux"
+import type { HostPane, PaletteHost } from "../hosts/types"
 import type { Colors, Item, RenderItemCtx } from "../types"
-
-function detectAgent(command: string, title: string): string {
-  const direct = new Set(["claude", "codex", "aider", "cursor-agent", "opencode", "gemini", "ollama"])
-  if (direct.has(command)) return command
-  if (title.startsWith("OC | ") || title.startsWith("OC|")) return "opencode"
-  if (/^\s*[*✳⠂⠐⠁⠉⠙⠹⠸⠼⠴⠦⠧⠇⠏]\s/.test(title)) return "claude"
-  return ""
-}
-
-type Pane = {
-  session: string
-  windowIndex: string
-  paneIndex: string
-  windowName: string
-  paneTitle: string
-  command: string
-  path: string
-  agent: string
-  paneActive: boolean
-  windowActive: boolean
-  isCurrent: boolean
-  target: string
-}
 
 type ItemData =
   | { kind: "session"; session: string; count: number; path: string; isCurrent: boolean }
   | { kind: "window"; session: string; windowIndex: string; windowName: string; treePrefix: string }
-  | { kind: "pane"; pane: Pane; treePrefix: string }
+  | { kind: "pane"; pane: HostPane; treePrefix: string }
 
-const PANE_FORMAT = [
-  "#{session_name}",
-  "#{window_index}",
-  "#{pane_index}",
-  "#{window_name}",
-  "#{pane_title}",
-  "#{pane_current_command}",
-  "#{pane_current_path}",
-  "#{pane_active}",
-  "#{window_active}",
-].join("\t")
+type WindowGroup = { windowName: string; panes: HostPane[] }
 
-function parsePaneLine(line: string, currentPane: string): Pane | null {
-  const [session, windowIndex, paneIndex, windowName, paneTitle, command, path, paneActive, windowActive] =
-    line.split("\t")
-  if (!session || !windowIndex || !paneIndex) return null
-  const target = `${session}:${windowIndex}.${paneIndex}`
-  const title = paneTitle || `pane${paneIndex}`
-  const cmd = command || ""
-  return {
-    session,
-    windowIndex,
-    paneIndex,
-    windowName: windowName || `window${windowIndex}`,
-    paneTitle: title,
-    command: cmd,
-    path: path || "",
-    agent: detectAgent(cmd, title),
-    paneActive: paneActive === "1",
-    windowActive: windowActive === "1",
-    isCurrent: target === currentPane,
-    target,
-  }
-}
-
-function fetchPanes(): { panes: Pane[]; currentPane: string; currentSession: string } {
-  const currentPane = tmux(["display-message", "-p", "#{session_name}:#{window_index}.#{pane_index}"])
-  const currentSession = currentPane.split(":")[0] ?? ""
-
-  const lines = tmux(["list-panes", "-a", "-F", PANE_FORMAT]).split("\n").filter(Boolean)
-  const panes: Pane[] = []
-  for (const line of lines) {
-    const p = parsePaneLine(line, currentPane)
-    if (p) panes.push(p)
-  }
-  return { panes, currentPane, currentSession }
-}
-
-type WindowGroup = { windowName: string; panes: Pane[] }
-
-function groupPanes(panes: Pane[]): { sessionOrder: string[]; bySession: Map<string, Map<string, WindowGroup>> } {
+function groupPanes(panes: HostPane[]): { sessionOrder: string[]; bySession: Map<string, Map<string, WindowGroup>> } {
   const sessionOrder: string[] = []
   const bySession = new Map<string, Map<string, WindowGroup>>()
   for (const p of panes) {
@@ -96,11 +25,11 @@ function groupPanes(panes: Pane[]): { sessionOrder: string[]; bySession: Map<str
   return { sessionOrder, bySession }
 }
 
-function sessionItem(session: string, allInSession: Pane[], currentSession: string): Item {
+function sessionItem(host: PaletteHost, session: string, allInSession: HostPane[], currentSession: string): Item {
   const focused = allInSession.find((p) => p.paneActive && p.windowActive) || allInSession[0]
   return {
     title: session,
-    action: { tmux: `switch-client -t ${tmuxQuote(session)}` },
+    action: host.focusSession?.(session) ?? { shell: ":" },
     selectable: false,
     data: {
       kind: "session",
@@ -112,25 +41,18 @@ function sessionItem(session: string, allInSession: Pane[], currentSession: stri
   }
 }
 
-function paneSelectAction(p: Pane): { tmux: string } {
-  const windowTarget = `${p.session}:${p.windowIndex}`
-  return {
-    tmux: `select-pane -t ${tmuxQuote(p.target)} \\; select-window -t ${tmuxQuote(windowTarget)} \\; switch-client -t ${tmuxQuote(p.session)}`,
-  }
-}
-
-function paneItem(p: Pane, treePrefix: string): Item {
+function paneItem(host: PaletteHost, p: HostPane, treePrefix: string): Item {
   return {
     title: p.paneTitle,
-    action: paneSelectAction(p),
+    action: host.focusPane?.(p) ?? { shell: ":" },
     data: { kind: "pane", pane: p, treePrefix } satisfies ItemData,
   }
 }
 
-function windowItem(session: string, windowIndex: string, w: WindowGroup, treePrefix: string): Item {
+function windowItem(host: PaletteHost, session: string, windowIndex: string, w: WindowGroup, treePrefix: string): Item {
   return {
     title: w.windowName,
-    action: { tmux: `select-window -t ${tmuxQuote(`${session}:${windowIndex}`)} \\; switch-client -t ${tmuxQuote(session)}` },
+    action: host.focusWindow?.(session, windowIndex) ?? { shell: ":" },
     selectable: false,
     data: {
       kind: "window",
@@ -142,30 +64,30 @@ function windowItem(session: string, windowIndex: string, w: WindowGroup, treePr
   }
 }
 
-function windowSubtree(session: string, windowIndex: string, w: WindowGroup, isLastWin: boolean): Item[] {
+function windowSubtree(host: PaletteHost, session: string, windowIndex: string, w: WindowGroup, isLastWin: boolean): Item[] {
   const winPrefix = `  ${isLastWin ? "└─" : "├─"} `
-  if (w.panes.length === 1) return [paneItem(w.panes[0]!, winPrefix)]
+  if (w.panes.length === 1) return [paneItem(host, w.panes[0]!, winPrefix)]
 
-  const items: Item[] = [windowItem(session, windowIndex, w, winPrefix)]
+  const items: Item[] = [windowItem(host, session, windowIndex, w, winPrefix)]
   const panePrefixBase = isLastWin ? "      " : "  │   "
   w.panes.forEach((p, pi) => {
     const isLastPane = pi === w.panes.length - 1
-    items.push(paneItem(p, panePrefixBase + (isLastPane ? "└─ " : "├─ ")))
+    items.push(paneItem(host, p, panePrefixBase + (isLastPane ? "└─ " : "├─ ")))
   })
   return items
 }
 
-function buildItems(): Item[] {
-  const { panes, currentSession } = fetchPanes()
+function buildItems(host: PaletteHost): Item[] {
+  const { panes, currentSession } = host.listPanes?.() ?? { panes: [], currentSession: "" }
   const { sessionOrder, bySession } = groupPanes(panes)
 
   const items: Item[] = []
   for (const session of sessionOrder) {
     const windows = [...bySession.get(session)!.entries()]
     const allInSession = windows.flatMap(([, w]) => w.panes)
-    items.push(sessionItem(session, allInSession, currentSession))
+    items.push(sessionItem(host, session, allInSession, currentSession))
     windows.forEach(([windowIndex, w], wi) => {
-      items.push(...windowSubtree(session, windowIndex, w, wi === windows.length - 1))
+      items.push(...windowSubtree(host, session, windowIndex, w, wi === windows.length - 1))
     })
   }
   return items
@@ -194,7 +116,7 @@ function renderWindow(
   return `${colors.muted}${data.treePrefix}${colors.reset}${rowBg}${titleStyle}${data.windowName}${colors.reset}${rowBg}`
 }
 
-function paneMarker(p: Pane, colors: Colors): { color: string; char: string } {
+function paneMarker(p: HostPane, colors: Colors): { color: string; char: string } {
   if (p.isCurrent) return { color: colors.accent, char: "▶" }
   if (p.paneActive) return { color: "\x1b[38;2;166;227;161m", char: "●" }
   return { color: colors.muted, char: "○" }
@@ -271,16 +193,18 @@ function filterTree(items: Item[], query: string): Item[] {
   })
 }
 
-export const findPane = definePalette({
-  title: "Find Pane",
-  grouped: false,
-  emptyText: "No panes",
-  items: buildItems,
-  renderItem,
-  filter: filterTree,
-  initialSelected: (items) =>
-    items.findIndex((i) => {
-      const d = i.data as ItemData | undefined
-      return d?.kind === "pane" && d.pane.isCurrent
-    }),
-})
+export function createFindPane(host: PaletteHost) {
+  return definePalette({
+    title: "Find Pane",
+    grouped: false,
+    emptyText: "No panes",
+    items: () => buildItems(host),
+    renderItem,
+    filter: filterTree,
+    initialSelected: (items) =>
+      items.findIndex((i) => {
+        const d = i.data as ItemData | undefined
+        return d?.kind === "pane" && d.pane.isCurrent
+      }),
+  })
+}

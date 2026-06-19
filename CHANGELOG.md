@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add a host abstraction with tmux and Herdr adapters.
+- Add neutral `{ "host": "..." }` actions, `host:` dispatch lines, `PALETTE_*` env vars, and `~/.config/command-palette/` config lookup while keeping tmux compatibility fallbacks.
+- Add a Herdr-native commands palette and pane/move-pane data sources for `PALETTE_HOST=herdr`.
+
 ## v0.3.0 - 2026-06-12
 
 - New bundled "Terminal" theme: transparent backgrounds and terminal-native ANSI colors, so the palette follows your terminal's own color scheme. Pick it via Switch Theme... or `{ "name": "terminal" }` in `theme.json`.

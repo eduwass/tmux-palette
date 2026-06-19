@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { bundledThemeMap } from "../src/themes-bundled"
-import { cursorTint, makeColors, tmuxBodyStyle, tmuxColor } from "../src/theme"
+import { tmuxBodyStyle, tmuxColor } from "../src/hosts/tmux"
+import { cursorTint, makeColors } from "../src/theme"
 import type { Theme } from "../src/types"
 
 const hexTheme: Theme = {

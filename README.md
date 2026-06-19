@@ -1,11 +1,13 @@
 # tmux-palette
 
-A command palette for tmux. It runs on [Bun](https://bun.sh), has no runtime
-dependencies, and opens quickly enough to use as a regular tmux binding.
+A command palette engine with tmux and Herdr hosts. It runs on
+[Bun](https://bun.sh), has no runtime dependencies, and opens quickly enough to
+use as a regular terminal/workspace binding.
 
 Type a few letters, pick a command, hit enter: split a pane, jump to a window,
 detach a session, open a popup tool, or switch to a custom palette. User config
-lives in `~/.config/tmux-palette/*.json`, so local changes survive repo updates.
+lives in `~/.config/command-palette/*.json` (with `~/.config/tmux-palette` still
+read as a legacy fallback), so local changes survive repo updates.
 
 **Commands** — main palette for panes, windows, sessions, and built-in tmux actions.
 
@@ -28,15 +30,15 @@ first to discuss before writing code.
 
 ## Highlights
 
-- **Fast startup** — designed for frequent use from a tmux key binding
+- **Fast startup** — designed for frequent use from a tmux key binding or Herdr action
 - **Custom palettes** — define your own with [a single JSON file](#custom-palettes), bind to any key
 - **Hide built-ins** — declutter the default palette via [`hidden.json`](#hiddenjson--hide-built-in-items)
 - **Mobile-aware** — [auto-fullscreens](#sizingjson--popup-dimensions-and-borders) on narrow terminals (Moshi / Blink on iOS)
 - **Curated themes** — 13 built-in themes including Shades of Purple, Dracula, Tokyo Night, Catppuccin, Gruvbox, Nord, Solarized, and a transparent `Terminal` theme that follows your terminal colors. [Pick one with live preview](#themes), or [drop your own](#custom-themes)
-- **Popup tools** — use `{ "popup": "htop" }` to open tools like `btop`, `lazygit`, log tails, or `fzf` scripts in a tmux popup
+- **Popup tools** — use `{ "popup": "htop" }` to open tools like `btop`, `lazygit`, log tails, or `fzf` scripts in a host popup
 - **Scriptable sources** — point a palette at a shell command that prints JSON or one item per line. Examples live in [`examples/`](examples)
 - **Small codebase** — roughly 2k LOC, so it is easy to audit, fork, or patch locally
-- **No fork required** — every customization lives in `~/.config/tmux-palette/*.json`
+- **No fork required** — every customization lives in `~/.config/command-palette/*.json`
 
 ## What you can build
 
@@ -49,7 +51,7 @@ first to discuss before writing code.
 - Keep a personal favorites palette without editing the repo.
 
 See [`examples/`](examples) for drop-in palettes you can copy into
-`~/.config/tmux-palette/palettes/`.
+`~/.config/command-palette/palettes/`.
 
 ## Install
 
@@ -88,6 +90,25 @@ bind p run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh"
 ```
 
 Reload: `tmux source-file ~/.tmux.conf` and hit your binding.
+
+</details>
+
+<details>
+<summary><b>Install as a Herdr plugin</b></summary>
+
+<br/>
+
+The Herdr host lives in this repo; the local plugin wrapper lives in
+`~/Sites/herdr-plugins/command-palette`.
+
+```sh
+herdr plugin link ~/Sites/herdr-plugins/command-palette
+herdr plugin action invoke eduwass.command-palette.open
+herdr plugin action invoke eduwass.command-palette.find-pane
+```
+
+The plugin opens the palette in a Herdr popup and passes the originating pane id
+to the TUI so host actions target the pane you were working in.
 
 </details>
 
@@ -162,7 +183,7 @@ If they want to match their terminal, detect it:
   - WezTerm:    ~/.wezterm.lua or ~/.config/wezterm/wezterm.lua
   - iTerm2 / others: ask the user for hex codes; their configs are hard to parse.
 - Extract: background → `bg`, foreground → `fg`, cursor color → `accent`, selection bg → `selected`. Derive `panel` (slightly lighter than bg) and `muted` (fg dimmed).
-- Write `~/.config/tmux-palette/theme.json` with `{ bg, panel, selected, fg, muted, accent }`. The palette reads this at runtime; do NOT edit source files.
+- Write `~/.config/command-palette/theme.json` with `{ bg, panel, selected, fg, muted, accent }`. The palette reads this at runtime; do NOT edit source files.
 - Report the colors you picked.
 
 5. Test
@@ -170,14 +191,14 @@ Tell the user to press their binding. Ask what they see.
 
 6. Offer one useful follow-up
 When it works, ask:
-- "Want a quick custom command, like opening lazygit or htop in a popup?" — write items to `~/.config/tmux-palette/commands.json` (array of Items). Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "popup": "..." }`, `{ "palette": "name" }`. Do NOT edit source files.
-- "Want a focused palette for PRs, Docker logs, npm scripts, or git branches?" — copy an example from `examples/` into `~/.config/tmux-palette/palettes/` and bind it.
-- "Want custom shortcut labels?" — write `~/.config/tmux-palette/shortcuts.json` mapping item titles to label strings.
+- "Want a quick custom command, like opening lazygit or htop in a popup?" — write items to `~/.config/command-palette/commands.json` (array of Items). Action types: `{ "host": "..." }`, `{ "shell": "..." }`, `{ "popup": "..." }`, `{ "palette": "name" }`. Do NOT edit source files.
+- "Want a focused palette for PRs, Docker logs, npm scripts, or git branches?" — copy an example from `examples/` into `~/.config/command-palette/palettes/` and bind it.
+- "Want custom shortcut labels?" — write `~/.config/command-palette/shortcuts.json` mapping item titles to label strings.
 
 Only do one follow-up unless the user asks for more.
 
 Constraints
-- Prefer `~/.config/tmux-palette/*.json` over source edits. The user's config survives upstream pulls; source edits don't.
+- Prefer `~/.config/command-palette/*.json` over source edits. The user's config survives upstream pulls; source edits don't.
 - Do not push to git or modify files outside the user's home directory.
 - Do not auto-install Bun or any other system package.
 - If anything fails, stop and explain what went wrong.
@@ -202,12 +223,13 @@ Window", `cs` for "Choose Session", `sh` for "Split Horizontal", etc.
 - The codebase is intentionally small and has no runtime package dependencies.
 - Custom palettes are local JSON files, but they can run shell commands. Only copy
   palette examples you understand, especially if they come from outside this repo.
-- User config lives under `~/.config/tmux-palette/`; normal customization should not
+- User config lives under `~/.config/command-palette/`; `~/.config/tmux-palette/`
+  is still read as a legacy fallback. Normal customization should not
   require editing source files.
 
 ## Known Limitations
 
-- Requires tmux popup support; tmux 3.4+ is recommended.
+- Tmux host requires popup support; tmux 3.4+ is recommended.
 - Plugin commands run each time their palette opens. Add your own cache layer for
   slow commands.
 - This is currently installed from the repo or via TPM, not a packaged npm release.
@@ -216,12 +238,13 @@ Window", `cs` for "Choose Session", `sh` for "Split Horizontal", etc.
 
 ## Customize
 
-Drop-in user config lives in `~/.config/tmux-palette/`. One JSON file per
-concern — no source edits, no fork, survives upstream pulls.
+Drop-in user config lives in `~/.config/command-palette/`. The old
+`~/.config/tmux-palette/` path is still read as a fallback. One JSON file per
+concern: no source edits, no fork, survives upstream pulls.
 
 ### Custom palettes
 
-Path: `~/.config/tmux-palette/palettes/<name>.json`
+Path: `~/.config/command-palette/palettes/<name>.json`
 
 Define a brand-new palette and bind any key to its name:
 
@@ -230,7 +253,7 @@ bind -n M-q run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh my-favs"
 ```
 
 ```jsonc
-// ~/.config/tmux-palette/palettes/my-favs.json
+// ~/.config/command-palette/palettes/my-favs.json
 {
   "title": "Favorites",
   "from": ["Toggle Diff Viewer", "Find Pane", "Choose Session"],
@@ -239,7 +262,7 @@ bind -n M-q run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh my-favs"
     {
       "icon": "",
       "title": "Custom item only in this palette",
-      "action": { "tmux": "run-shell '~/scripts/x.sh'" }
+      "action": { "host": "run-shell '~/scripts/x.sh'" }
     }
   ]
 }
@@ -265,7 +288,7 @@ that prints to stdout becomes a palette. Two output modes:
 **JSON mode** — full control. Print a JSON array of `Item` objects:
 
 ```jsonc
-// ~/.config/tmux-palette/palettes/github-prs.json
+// ~/.config/command-palette/palettes/github-prs.json
 {
   "title": "GitHub PRs",
   "command": "gh pr list --json number,title,url --jq '[.[] | {icon: \"\", title: ((.number|tostring) + \" \" + .title), action: {shell: (\"gh pr view \" + (.number|tostring) + \" --web\")}}]'"
@@ -277,11 +300,11 @@ default `action` template at the palette level with `{}` substituted
 for the selected line:
 
 ```jsonc
-// ~/.config/tmux-palette/palettes/git-branches.json
+// ~/.config/command-palette/palettes/git-branches.json
 {
   "title": "Git Branches",
   "command": "git branch --format='%(refname:short)'",
-  "action": { "tmux": "send-keys 'git checkout {}' Enter" }
+  "action": { "host": "send-keys 'git checkout {}' Enter" }
 }
 ```
 
@@ -317,7 +340,7 @@ Append items to the `commands` palette without editing source:
     "icon": "",
     "title": "Toggle Diff Viewer",
     "category": "Tools",
-    "action": { "tmux": "run-shell '/path/to/script.sh'" }
+    "action": { "host": "run-shell '/path/to/script.sh'" }
   },
   {
     "icon": "󱂬",
@@ -334,9 +357,11 @@ Append items to the `commands` palette without editing source:
 ]
 ```
 
-Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "popup": "..." }`, `{ "palette": "find-pane" }`.
+Action types: `{ "host": "..." }`, `{ "shell": "..." }`, `{ "popup": "..." }`, `{ "palette": "find-pane" }`.
+`{ "tmux": "..." }` is still accepted for existing configs but new configs should
+use `{ "host": "..." }`.
 
-`{ "popup": "htop" }` opens the given command in a centered tmux popup
+`{ "popup": "htop" }` opens the given command in a centered host popup
 (80% × 80%, closes when the command exits). Handy for log viewers,
 htop, btop, less, fzf-driven tools, etc.
 
@@ -412,10 +437,10 @@ also mix: pick a name, then add individual keys to nudge specific colors.
 
 ### Custom themes
 
-Drop one JSON file per theme into `~/.config/tmux-palette/themes/`:
+Drop one JSON file per theme into `~/.config/command-palette/themes/`:
 
 ```jsonc
-// ~/.config/tmux-palette/themes/my-theme.json
+// ~/.config/command-palette/themes/my-theme.json
 {
   "bg": "#0d0f12",
   "panel": "#171a1f",
@@ -457,7 +482,7 @@ marker/icon on `accent`). `titleFg` colors the popup title in the header
 uses `fg`.
 
 ```jsonc
-// ~/.config/tmux-palette/themes/ghost.json — terminal-native theme
+// ~/.config/command-palette/themes/ghost.json — terminal-native theme
 {
   "bg": "transparent",
   "panel": "transparent",
@@ -524,16 +549,16 @@ generators, custom filter logic — edit the TS source. Items in
   shortcut?: "Cmd+Shift+P", // optional, right-aligned label
   category?: "Panes",     // optional, groups items under a header
   aliases?: ["fp"],       // optional, visible chip + searchable
-  action: { tmux: "..." } // see Actions below
+  action: { host: "..." } // see Actions below
 }
 ```
 
 ### Actions
 
 ```ts
-{ tmux: "split-window -h" }     // runs `tmux <cmd>` after the popup closes
+{ host: "split-window -h" }     // runs host command after the popup closes
 { shell: "echo hi" }            // runs a shell command after the popup closes
-{ popup: "htop" }               // opens cmd in a centered 80% tmux popup
+{ popup: "htop" }               // opens cmd in a centered 80% host popup
 { palette: "find-pane" }        // chains into another palette
 { run: (ctx) => { ... } }       // custom JS, runs in-process, then exits
 { apply: (ctx) => { ... } }     // custom JS, runs in-process, then pops
@@ -541,13 +566,13 @@ generators, custom filter logic — edit the TS source. Items in
                                 // the theme switcher to "apply + return")
 ```
 
-`{ tmux }` is special: it dispatches *after* the popup closes, so interactive
-tmux prompts (`confirm-before`, `command-prompt`) actually get keyboard
-input. Without this, prompts hang because the popup still owns stdin.
+`{ host }` is special: it dispatches *after* the popup closes, so interactive
+host prompts (`confirm-before`, `command-prompt`, etc.) actually get keyboard
+input. `{ tmux }` remains a deprecated compatibility alias for existing configs.
 
 ## How it works (the trick)
 
-The bash wrapper opens a `tmux display-popup` running the palette. When you
+The tmux bash wrapper opens a `tmux display-popup` running the palette. When you
 pick an item, the palette writes the encoded command to a tempfile and exits.
 The wrapper *then* reads the tempfile and runs the command — *after* the
 popup is gone. This matters because interactive tmux commands like

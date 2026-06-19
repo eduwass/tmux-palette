@@ -38,8 +38,8 @@ W=$(( WANT_W > CW - 4 ? CW - 4 : WANT_W ))
 if [ "$WANT_W" -ge "$CW" ]; then H="$CH"; W="$CW"; fi
 
 # Allow env override.
-H="${TMUX_PALETTE_HEIGHT:-$H}"
-W="${TMUX_PALETTE_WIDTH:-$W}"
+H="${PALETTE_HEIGHT:-${TMUX_PALETTE_HEIGHT:-$H}}"
+W="${PALETTE_WIDTH:-${TMUX_PALETTE_WIDTH:-$W}}"
 
 # Border: "none" maps to tmux's -B (no border). Anything else is passed
 # through tmux's -b <type>: single, double, heavy, rounded, padded, simple.
@@ -61,18 +61,22 @@ done
 BORDERED=0
 [ "$WANT_BORDER" != "none" ] && BORDERED=1
 
-# TMUX_PALETTE_BIN is set so { palette: "..." } subpalette chaining knows
+# PALETTE_BIN is set so { palette: "..." } subpalette chaining knows
 # how to invoke ourselves — without it we'd assume "tmux-palette" is on PATH.
 $TMUX_BIN display-popup "${BORDER_ARGS[@]}" -w "$W" -h "$H" -E \
-  "TMUX_PALETTE_CMD='$CMD_FILE' TMUX_PALETTE_BIN='$0' TMUX_PALETTE_PADX='$WANT_PADX' TMUX_PALETTE_BORDERED='$BORDERED' exec bun '$DIR/src/cli.ts'$ARG_STR"
+  "PALETTE_CMD='$CMD_FILE' PALETTE_BIN='$0' PALETTE_PADX='$WANT_PADX' PALETTE_BORDERED='$BORDERED' TMUX_PALETTE_CMD='$CMD_FILE' TMUX_PALETTE_BIN='$0' TMUX_PALETTE_PADX='$WANT_PADX' TMUX_PALETTE_BORDERED='$BORDERED' exec bun '$DIR/src/cli.ts'$ARG_STR"
 
 if [ -s "$CMD_FILE" ]; then
   CMD="$(cat "$CMD_FILE")"
   case "$CMD" in
-    tmux:*)
+    host:*)
       # Don't propagate the dispatched command's exit status. tmux's `run-shell`
       # surfaces "script returned N" on non-zero exit, and some commands return
       # non-zero even when the prompt itself worked.
+      eval "$TMUX_BIN ${CMD#host:}" || true
+      ;;
+    tmux:*)
+      # Legacy prefix accepted for existing user configs / older palette builds.
       eval "$TMUX_BIN ${CMD#tmux:}" || true
       ;;
     shell:*)

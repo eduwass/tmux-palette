@@ -1,73 +1,121 @@
 import { definePalette } from "../palette"
+import type { PaletteHost } from "../hosts/types"
 
-export const commands = definePalette({
+const originPane = "${PALETTE_ORIGIN_PANE_ID:-$HERDR_PANE_ID}"
+
+function herdrCommands() {
+  return definePalette({
+    title: "Commands",
+    items: [
+      { icon: "󰍉", category: "Panes", title: "Find Pane",
+        action: { palette: "find-pane" } },
+      { icon: "", category: "Panes", title: "Split Right", description: "side by side",
+        action: { host: `herdr pane split ${originPane} --direction right --focus` } },
+      { icon: "", category: "Panes", title: "Split Down", description: "stacked",
+        action: { host: `herdr pane split ${originPane} --direction down --focus` } },
+      { icon: "󰅖", category: "Panes", title: "Close Pane",
+        action: { host: `herdr pane close ${originPane}` } },
+      { icon: "󰁔", category: "Panes", title: "Focus Pane Right",
+        action: { host: `herdr pane focus --pane ${originPane} --direction right` } },
+      { icon: "󰁍", category: "Panes", title: "Focus Pane Left",
+        action: { host: `herdr pane focus --pane ${originPane} --direction left` } },
+      { icon: "󰍉", category: "Panes", title: "Zoom / Unzoom",
+        action: { host: `herdr pane zoom ${originPane} --toggle` } },
+      { icon: "󰁁", category: "Panes", title: "Move Pane to...",
+        action: { palette: "move-pane" } },
+
+      { icon: "󰝰", category: "Tabs", title: "New Tab",
+        action: { host: "herdr tab create --focus" } },
+      { icon: "󰁔", category: "Tabs", title: "Choose Pane / Tab",
+        action: { palette: "find-pane" } },
+
+      { icon: "󱂬", category: "Workspaces", title: "Choose Workspace",
+        action: { palette: "find-pane" } },
+      { icon: "󰐕", category: "Workspaces", title: "New Workspace",
+        action: { host: "herdr workspace create --focus" } },
+
+      { icon: "", category: "Appearance", title: "Switch Theme...", description: "browse + live-preview bundled themes",
+        action: { palette: "themes" } },
+    ],
+  })
+}
+
+function tmuxCommands() {
+  return definePalette({
   title: "Commands",
   items: [
     { icon: "󰍉", category: "Panes", title: "Find Pane",
       action: { palette: "find-pane" } },
     { icon: "", category: "Panes", title: "Split Horizontal", description: "side by side",
-      action: { tmux: "split-window -h -c '#{pane_current_path}'" } },
+      action: { host: "split-window -h -c '#{pane_current_path}'" } },
     { icon: "", category: "Panes", title: "Split Vertical", description: "stacked",
-      action: { tmux: "split-window -v -c '#{pane_current_path}'" } },
+      action: { host: "split-window -v -c '#{pane_current_path}'" } },
     { icon: "󰅖", category: "Panes", title: "Close Pane",
-      action: { tmux: "kill-pane" } },
+      action: { host: "kill-pane" } },
     { icon: "󰒉", category: "Panes", title: "Close Other Panes",
-      action: { tmux: "confirm-before -p 'kill all other panes? (y/n)' 'kill-pane -a'" } },
+      action: { host: "confirm-before -p 'kill all other panes? (y/n)' 'kill-pane -a'" } },
     { icon: "󰁔", category: "Panes", title: "Next Pane",
-      action: { tmux: "select-pane -t +1" } },
+      action: { host: "select-pane -t +1" } },
     { icon: "󰁍", category: "Panes", title: "Previous Pane",
-      action: { tmux: "select-pane -t -1" } },
+      action: { host: "select-pane -t -1" } },
     { icon: "󰎠", category: "Panes", title: "Display Pane Numbers",
-      action: { tmux: "display-panes" } },
+      action: { host: "display-panes" } },
     { icon: "󰓡", category: "Panes", title: "Cycle Pane Layout",
-      action: { tmux: "next-layout" } },
+      action: { host: "next-layout" } },
     { icon: "󰁝", category: "Panes", title: "Swap Pane Up",
-      action: { tmux: "swap-pane -U" } },
+      action: { host: "swap-pane -U" } },
     { icon: "󰁅", category: "Panes", title: "Swap Pane Down",
-      action: { tmux: "swap-pane -D" } },
+      action: { host: "swap-pane -D" } },
     { icon: "󰍉", category: "Panes", title: "Zoom / Unzoom",
-      action: { tmux: "resize-pane -Z" } },
+      action: { host: "resize-pane -Z" } },
     { icon: "󰆏", category: "Panes", title: "Enter Copy Mode", description: "scrollback / select",
-      action: { tmux: "copy-mode" } },
+      action: { host: "copy-mode" } },
     { icon: "󰏫", category: "Panes", title: "Rename Pane",
-      action: { tmux: "command-prompt -I '#{pane_title}' 'select-pane -T \"%1\"'" } },
+      action: { host: "command-prompt -I '#{pane_title}' 'select-pane -T \"%1\"'" } },
     { icon: "󰁁", category: "Panes", title: "Move Pane to...",
       action: { palette: "move-pane" } },
     { icon: "󰘖", category: "Panes", title: "Break to New Window",
-      action: { tmux: "break-pane" } },
+      action: { host: "break-pane" } },
 
     { icon: "󰝰", category: "Windows", title: "New Window",
-      action: { tmux: "new-window -c '#{pane_current_path}'" } },
+      action: { host: "new-window -c '#{pane_current_path}'" } },
     { icon: "󰁔", category: "Windows", title: "Next Window",
-      action: { tmux: "next-window" } },
+      action: { host: "next-window" } },
     { icon: "󰁍", category: "Windows", title: "Previous Window",
-      action: { tmux: "previous-window" } },
+      action: { host: "previous-window" } },
     { icon: "󰋚", category: "Windows", title: "Last Window",
-      action: { tmux: "last-window" } },
+      action: { host: "last-window" } },
     { icon: "󰏫", category: "Windows", title: "Rename Window",
-      action: { tmux: "command-prompt -I '#W' 'rename-window -- \"%%\"'" } },
+      action: { host: "command-prompt -I '#W' 'rename-window -- \"%%\"'" } },
     { icon: "󰅖", category: "Windows", title: "Close Window",
-      action: { tmux: "confirm-before -p 'kill window? (y/n)' kill-window" } },
+      action: { host: "confirm-before -p 'kill window? (y/n)' kill-window" } },
 
     { icon: "󱂬", category: "Sessions", title: "Choose Session",
-      action: { tmux: "choose-tree -Zs" } },
+      action: { host: "choose-tree -Zs" } },
     { icon: "󰐕", category: "Sessions", title: "New Session",
-      action: { tmux: "command-prompt -p 'New session name:' 'new-session -d -s \"%1\" ; switch-client -t \"%1\"'" } },
+      action: { host: "command-prompt -p 'New session name:' 'new-session -d -s \"%1\" ; switch-client -t \"%1\"'" } },
     { icon: "󰏫", category: "Sessions", title: "Rename Session",
-      action: { tmux: "command-prompt -I '#S' 'rename-session -- \"%%\"'" } },
+      action: { host: "command-prompt -I '#S' 'rename-session -- \"%%\"'" } },
     { icon: "󰁔", category: "Sessions", title: "Next Session",
-      action: { tmux: "switch-client -n" } },
+      action: { host: "switch-client -n" } },
     { icon: "󰁍", category: "Sessions", title: "Previous Session",
-      action: { tmux: "switch-client -p" } },
+      action: { host: "switch-client -p" } },
     { icon: "󰍃", category: "Sessions", title: "Detach",
-      action: { tmux: "detach-client" } },
+      action: { host: "detach-client" } },
     { icon: "󰆴", category: "Sessions", title: "Kill Session",
-      action: { tmux: "confirm-before -p 'kill session #S? (y/n)' kill-session" } },
+      action: { host: "confirm-before -p 'kill session #S? (y/n)' kill-session" } },
 
     { icon: "󰑓", category: "System", title: "Reload Config",
-      action: { tmux: "source-file ~/.tmux.conf ; display-message 'Config reloaded'" } },
+      action: { host: "source-file ~/.tmux.conf ; display-message 'Config reloaded'" } },
 
     { icon: "", category: "Appearance", title: "Switch Theme...", description: "browse + live-preview bundled themes",
       action: { palette: "themes" } },
   ],
-})
+  })
+}
+
+export function createCommands(host: PaletteHost) {
+  return host.id === "herdr" ? herdrCommands() : tmuxCommands()
+}
+
+export const commands = tmuxCommands()

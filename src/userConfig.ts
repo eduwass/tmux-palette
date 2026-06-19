@@ -1,17 +1,19 @@
 import { readFileSync } from "node:fs"
 import type { Item } from "./types"
 
-const CONFIG_DIR =
-  `${process.env.XDG_CONFIG_HOME ?? `${process.env.HOME ?? ""}/.config`}/tmux-palette`
+const CONFIG_HOME = process.env.XDG_CONFIG_HOME ?? `${process.env.HOME ?? ""}/.config`
+const CONFIG_DIR = `${CONFIG_HOME}/command-palette`
+const LEGACY_CONFIG_DIR = `${CONFIG_HOME}/tmux-palette`
 
 function loadJSON<T>(name: string, fallback: T): T {
-  try {
-    const raw = readFileSync(`${CONFIG_DIR}/${name}`, "utf8")
-    const parsed = JSON.parse(raw)
-    return parsed ?? fallback
-  } catch {
-    return fallback
+  for (const dir of [CONFIG_DIR, LEGACY_CONFIG_DIR]) {
+    try {
+      const raw = readFileSync(`${dir}/${name}`, "utf8")
+      const parsed = JSON.parse(raw)
+      return parsed ?? fallback
+    } catch {}
   }
+  return fallback
 }
 
 let _shortcuts: Record<string, string> | null = null

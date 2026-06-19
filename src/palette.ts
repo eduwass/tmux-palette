@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs"
-import { dispatchToFile } from "./dispatch"
+import { dispatchDirect, dispatchToFile } from "./dispatch"
 import { defaultFilter } from "./fuzzy"
 import {
   buildRows,
@@ -15,7 +15,8 @@ import {
   type Row,
   type RowAction,
 } from "./render"
-import { cursorTint, makeColors, popupFlags, resolveActiveTheme } from "./theme"
+import { popupFlags } from "./hosts/tmux"
+import { cursorTint, makeColors, resolveActiveTheme } from "./theme"
 import type { ActionContext, Item, PaletteDef, PopupAction } from "./types"
 import { userAliases, userShortcuts, userSizing } from "./userConfig"
 
@@ -111,7 +112,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   let grouped = def.grouped !== false
   let emptyText = def.emptyText ?? "No results"
 
-  const cmdFile = process.env.TMUX_PALETTE_CMD
+  const cmdFile = process.env.PALETTE_CMD ?? process.env.TMUX_PALETTE_CMD
 
   let filter = ""
   let filterCursor = 0
@@ -216,12 +217,12 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     // When the tmux border is on it visually replaces our top/bottom pad
     // rows, so we skip them (chrome = 5 instead of 7) and shift mouse-y
     // mapping by 1.
-    const bordered = process.env.TMUX_PALETTE_BORDERED === "1"
+    const bordered = (process.env.PALETTE_BORDERED ?? process.env.TMUX_PALETTE_BORDERED) === "1"
     const chromeRows = bordered ? 5 : 7
     const listHeight = Math.max(1, height - chromeRows)
     scroll = clampScroll(rows, listHeight, selected, scroll)
 
-    const padX = Math.max(0, Number(process.env.TMUX_PALETTE_PADX) || 3)
+    const padX = Math.max(0, Number(process.env.PALETTE_PADX ?? process.env.TMUX_PALETTE_PADX) || 3)
     const bodyWidth = Math.max(1, width - padX * 2)
     const blank = `${colors.panel}${" ".repeat(width)}${colors.reset}`
 
@@ -299,7 +300,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
     const height = action.height ?? sizing.popupHeight ?? "80%"
     const wExpr = popupDimExpr(width, "client_width", padX)
     const hExpr = popupDimExpr(height, "client_height", padY)
-    const bin = process.env.TMUX_PALETTE_BIN ?? "tmux-palette"
+    const bin = process.env.PALETTE_BIN ?? process.env.TMUX_PALETTE_BIN ?? "tmux-palette"
     // The trailing relaunch uses `run-shell -b` so tmux returns immediately;
     // the wrapper script itself opens a new display-popup for the palette.
     return `tmux display-popup -E ${popupFlags(theme, action.border)} -h ${hExpr} -w ${wExpr} ${action.popup}; tmux run-shell -b '${bin} ${relaunchName}'`
@@ -311,6 +312,8 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
       try {
         writeFileSync(cmdFile, `shell:${buildPopupRelaunchCommand(action, currentName)}`)
       } catch {}
+    } else {
+      process.exit(dispatchDirect(action))
     }
     process.exit(0)
   }
@@ -321,8 +324,11 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
       await item.action.run({ cmdFile })
       process.exit(0)
     }
-    dispatchToFile(item.action, cmdFile)
-    process.exit(0)
+    if (cmdFile) {
+      dispatchToFile(item.action, cmdFile)
+      process.exit(0)
+    }
+    process.exit(dispatchDirect(item.action))
   }
 
   // In-process action that runs inline and then navigates back to the

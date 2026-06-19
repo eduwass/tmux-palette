@@ -13,6 +13,8 @@ export type PopupAction = {
 }
 
 export type Action =
+  | { host: string }
+  /** @deprecated Use `{ host: string }`; kept for existing tmux-palette configs. */
   | { tmux: string }
   | { shell: string }
   | { palette: string }

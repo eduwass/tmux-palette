@@ -1,10 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { bundledThemeMap, bundledThemes, type BundledTheme } from "./themes-bundled"
 import type { Colors, Theme } from "./types"
-import { userSizing } from "./userConfig"
 
-const CONFIG_DIR =
-  `${process.env.XDG_CONFIG_HOME ?? `${process.env.HOME ?? ""}/.config`}/tmux-palette`
+const CONFIG_HOME = process.env.XDG_CONFIG_HOME ?? `${process.env.HOME ?? ""}/.config`
+const CONFIG_DIRS = [`${CONFIG_HOME}/command-palette`, `${CONFIG_HOME}/tmux-palette`]
 
 const DEFAULT_SLUG = "shades-of-purple"
 
@@ -18,18 +17,30 @@ let _userThemes: Record<string, Theme> | null = null
 function userThemes(): Record<string, Theme> {
   if (_userThemes) return _userThemes
   const out: Record<string, Theme> = {}
-  try {
-    for (const file of readdirSync(`${CONFIG_DIR}/themes`)) {
-      if (!file.endsWith(".json")) continue
-      const slug = file.slice(0, -5)
-      try {
-        const parsed = JSON.parse(readFileSync(`${CONFIG_DIR}/themes/${file}`, "utf8"))
-        if (isFullTheme(parsed)) out[slug] = parsed
-      } catch {}
-    }
-  } catch {}
+  for (const dir of CONFIG_DIRS) {
+    try {
+      for (const file of readdirSync(`${dir}/themes`)) {
+        if (!file.endsWith(".json")) continue
+        const slug = file.slice(0, -5)
+        if (out[slug]) continue
+        try {
+          const parsed = JSON.parse(readFileSync(`${dir}/themes/${file}`, "utf8"))
+          if (isFullTheme(parsed)) out[slug] = parsed
+        } catch {}
+      }
+    } catch {}
+  }
   _userThemes = out
   return out
+}
+
+function readFirstConfigFile(name: string): string | null {
+  for (const dir of CONFIG_DIRS) {
+      try {
+        return readFileSync(`${dir}/${name}`, "utf8")
+      } catch {}
+  }
+  return null
 }
 
 export type ThemeListEntry = { slug: string; name: string; theme: Theme; source: "user" | "bundled" }
@@ -94,7 +105,8 @@ let _userThemeFile: UserThemeFile | null | undefined = undefined
 function userThemeFile(): UserThemeFile | null {
   if (_userThemeFile !== undefined) return _userThemeFile
   try {
-    const raw = readFileSync(`${CONFIG_DIR}/theme.json`, "utf8")
+    const raw = readFirstConfigFile("theme.json")
+    if (!raw) throw new Error("missing theme.json")
     _userThemeFile = JSON.parse(raw) as UserThemeFile
   } catch {
     _userThemeFile = null
@@ -176,15 +188,6 @@ function fgOrDefault(value: string): string {
   return fg(value)
 }
 
-/** Translate a theme color into a tmux style value: "transparent" → "default",
- *  a palette name → tmux's form ("blue" / "brightblack"), hex passes through. */
-export function tmuxColor(value: string): string {
-  if (value === TRANSPARENT) return "default"
-  const n = namedColor(value)
-  if (n) return n.bright ? `bright${n.base}` : n.base
-  return value
-}
-
 /** OSC 12 sequence tinting the terminal cursor to the accent, or "" when the
  *  accent is a palette name / transparent — those leave the cursor on the
  *  terminal's own configured cursor color rather than forcing an X11 name. */
@@ -205,22 +208,4 @@ export function makeColors(theme: Theme): Colors {
     reset: "\x1b[0m",
     bold: "\x1b[1m",
   }
-}
-
-/** tmux display-popup body style (-s). Resolves the panel through tmuxColor so
- *  transparent → bg=default, a palette name → the terminal's color, hex → hex. */
-export function tmuxBodyStyle(theme: Theme): string {
-  return `bg=${tmuxColor(theme.panel)}`
-}
-
-/** Builds the tmux display-popup style flags: -B + body style (-s) when there
- *  is no border, the -b/-s/-S triplet otherwise. `borderOverride` (a per-action
- *  `border` setting) wins over sizing.popupBorder. */
-export function popupFlags(theme: Theme, borderOverride?: string): string {
-  const sizing = userSizing()
-  const popupBorder = borderOverride ?? sizing.popupBorder ?? "none"
-  const bodyStyle = sizing.popupBodyStyle ?? tmuxBodyStyle(theme)
-  if (popupBorder === "none") return `-B -s '${bodyStyle}'`
-  const borderStyle = sizing.popupBorderStyle ?? `fg=${tmuxColor(theme.accent)},bg=default`
-  return `-b ${popupBorder} -s '${bodyStyle}' -S '${borderStyle}'`
 }
