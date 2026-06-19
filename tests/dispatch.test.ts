@@ -52,15 +52,30 @@ describe("dispatchDirect", () => {
 
   test("requires tmux for host actions", () => {
     const previousTmux = process.env.TMUX
+    const previousHost = process.env.PALETTE_HOST
     const previousError = console.error
     delete process.env.TMUX
+    delete process.env.PALETTE_HOST
     console.error = () => {}
     try {
       expect(dispatchDirect({ host: "split-window -h" })).toBe(1)
     } finally {
       if (previousTmux === undefined) delete process.env.TMUX
       else process.env.TMUX = previousTmux
+      if (previousHost === undefined) delete process.env.PALETTE_HOST
+      else process.env.PALETTE_HOST = previousHost
       console.error = previousError
+    }
+  })
+
+  test("runs zellij host actions directly", () => {
+    const previousHost = process.env.PALETTE_HOST
+    process.env.PALETTE_HOST = "zellij"
+    try {
+      expect(dispatchDirect({ host: "true" })).toBe(0)
+    } finally {
+      if (previousHost === undefined) delete process.env.PALETTE_HOST
+      else process.env.PALETTE_HOST = previousHost
     }
   })
 })

@@ -43,7 +43,7 @@ function runShell(command: string): number {
 }
 
 function runTmux(command: string): number {
-  if (process.env.PALETTE_HOST === "herdr") return runShell(command)
+  if (process.env.PALETTE_HOST === "herdr" || process.env.PALETTE_HOST === "zellij") return runShell(command)
   if (!process.env.TMUX) {
     console.error("palette: host action requires tmux; use a shell action or run inside tmux")
     return 1

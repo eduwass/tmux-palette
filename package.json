@@ -4,7 +4,8 @@
   "type": "module",
   "description": "Raycast-style command palette for tmux — fast, scriptable, easy to extend",
   "bin": {
-    "tmux-palette": "./bin/tmux-palette.sh"
+    "tmux-palette": "./bin/tmux-palette.sh",
+    "zellij-palette": "./bin/zellij-palette.sh"
   },
   "scripts": {
     "start": "bun src/cli.ts",

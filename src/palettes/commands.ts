@@ -2,6 +2,7 @@ import { definePalette } from "../palette"
 import type { PaletteHost } from "../hosts/types"
 
 const originPane = "${PALETTE_ORIGIN_PANE_ID:-$HERDR_PANE_ID}"
+const zellijOriginPane = '"$PALETTE_ORIGIN_PANE_ID"'
 
 function herdrCommands() {
   return definePalette({
@@ -114,8 +115,38 @@ function tmuxCommands() {
   })
 }
 
+function zellijCommands() {
+  return definePalette({
+    title: "Commands",
+    items: [
+      { icon: "󰍉", category: "Panes", title: "Find Pane",
+        action: { palette: "find-pane" } },
+      { icon: "", category: "Panes", title: "Split Right", description: "side by side",
+        action: { host: `zellij action focus-pane-id ${zellijOriginPane}; zellij action new-pane --direction right` } },
+      { icon: "", category: "Panes", title: "Split Down", description: "stacked",
+        action: { host: `zellij action focus-pane-id ${zellijOriginPane}; zellij action new-pane --direction down` } },
+      { icon: "󰅖", category: "Panes", title: "Close Pane",
+        action: { host: `zellij action close-pane --pane-id ${zellijOriginPane}` } },
+      { icon: "󰁔", category: "Panes", title: "Next Pane",
+        action: { host: `zellij action focus-pane-id ${zellijOriginPane}; zellij action focus-next-pane` } },
+      { icon: "󰁍", category: "Panes", title: "Previous Pane",
+        action: { host: `zellij action focus-pane-id ${zellijOriginPane}; zellij action focus-previous-pane` } },
+
+      { icon: "󰝰", category: "Tabs", title: "New Tab",
+        action: { host: "zellij action new-tab" } },
+      { icon: "󰁔", category: "Tabs", title: "Choose Pane / Tab",
+        action: { palette: "find-pane" } },
+
+      { icon: "", category: "Appearance", title: "Switch Theme...", description: "browse + live-preview bundled themes",
+        action: { palette: "themes" } },
+    ],
+  })
+}
+
 export function createCommands(host: PaletteHost) {
-  return host.id === "herdr" ? herdrCommands() : tmuxCommands()
+  if (host.id === "herdr") return herdrCommands()
+  if (host.id === "zellij") return zellijCommands()
+  return tmuxCommands()
 }
 
 export const commands = tmuxCommands()

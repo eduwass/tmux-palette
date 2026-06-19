@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process"
 import { herdrHost } from "./hosts/herdr"
 import { tmuxBodyStyle, tmuxColor, tmuxHost } from "./hosts/tmux"
+import { zellijHost } from "./hosts/zellij"
 import { runPalette } from "./palette"
 import { createCommands } from "./palettes/commands"
 import { createFindPane } from "./palettes/find-pane"
@@ -99,7 +100,11 @@ const DEFAULT_PAD_X = 3
 // 80 is the classic terminal width; anything below has too little room
 // for a padded popup to feel good. Set to 0 in sizing.json to disable.
 const DEFAULT_MOBILE_WIDTH = 80
-const activeHost = process.env.PALETTE_HOST === "herdr" ? herdrHost : tmuxHost
+const activeHost = process.env.PALETTE_HOST === "herdr"
+  ? herdrHost
+  : process.env.PALETTE_HOST === "zellij"
+    ? zellijHost
+    : tmuxHost
 
 const palettes: Record<string, PaletteDef> = {
   commands: createCommands(activeHost),
