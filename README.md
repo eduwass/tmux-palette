@@ -125,7 +125,7 @@ or theme.
 
 Paste the prompt below into [Claude Code](https://claude.com/claude-code), [Codex](https://github.com/openai/codex), [opencode](https://opencode.ai), Cursor, or any AI coding agent.
 
-````
+```
 You are helping a user onboard tmux-palette, a small command palette for tmux. Repo: https://github.com/eduwass/tmux-palette
 
 Goal: get the palette installed, bound to a key, tested inside tmux, and leave the user with one useful next customization if they want it.
@@ -181,7 +181,7 @@ Constraints
 - Do not push to git or modify files outside the user's home directory.
 - Do not auto-install Bun or any other system package.
 - If anything fails, stop and explain what went wrong.
-````
+```
 
 </details>
 
@@ -239,9 +239,9 @@ bind -n M-q run-shell "~/Sites/tmux-palette/bin/tmux-palette.sh my-favs"
     {
       "icon": "",
       "title": "Custom item only in this palette",
-      "action": { "tmux": "run-shell '~/scripts/x.sh'" }
-    }
-  ]
+      "action": { "tmux": "run-shell '~/scripts/x.sh'" },
+    },
+  ],
 }
 ```
 
@@ -268,7 +268,7 @@ that prints to stdout becomes a palette. Two output modes:
 // ~/.config/tmux-palette/palettes/github-prs.json
 {
   "title": "GitHub PRs",
-  "command": "gh pr list --json number,title,url --jq '[.[] | {icon: \"\", title: ((.number|tostring) + \" \" + .title), action: {shell: (\"gh pr view \" + (.number|tostring) + \" --web\")}}]'"
+  "command": "gh pr list --json number,title,url --jq '[.[] | {icon: \"\", title: ((.number|tostring) + \" \" + .title), action: {shell: (\"gh pr view \" + (.number|tostring) + \" --web\")}}]'",
 }
 ```
 
@@ -281,7 +281,7 @@ for the selected line:
 {
   "title": "Git Branches",
   "command": "git branch --format='%(refname:short)'",
-  "action": { "tmux": "send-keys 'git checkout {}' Enter" }
+  "action": { "tmux": "send-keys 'git checkout {}' Enter" },
 }
 ```
 
@@ -388,7 +388,7 @@ surrounding terminal, so it is not the default.
 
 ### Themes
 
-Open the main palette and pick **Switch Theme...** (under *Appearance*).
+Open the main palette and pick **Switch Theme...** (under _Appearance_).
 Arrow-key through the list — every theme lives-previews instantly so you
 see the colors apply before you commit. Enter saves it and returns you to
 the previous palette with the new theme on; Esc cancels.
@@ -439,7 +439,7 @@ Drop one JSON file per theme into `~/.config/tmux-palette/themes/`:
   "selected": "#2c3038",
   "fg": "#e6e8eb",
   "muted": "#7d8590",
-  "accent": "#ff6b6b"
+  "accent": "#ff6b6b",
 }
 ```
 
@@ -458,7 +458,7 @@ Any color field accepts more than a hex code:
 - A palette color **name** — `"black"`, `"red"`, `"green"`, `"yellow"`,
   `"blue"`, `"magenta"`, `"cyan"`, `"white"`, or any of those with a
   `"bright-"` prefix (`"bright-black"` is the usual gray). These render with the
-  terminal's *own* configured colors, so the palette tracks whatever
+  terminal's _own_ configured colors, so the palette tracks whatever
   colorscheme you're running instead of pinning a fixed hex.
 
 The bundled `terminal` theme (`{ "name": "terminal" }`) leans on these:
@@ -482,7 +482,7 @@ uses `fg`.
   "fg": "transparent",
   "muted": "bright-black",
   "accent": "blue",
-  "selectedFg": "yellow"
+  "selectedFg": "yellow",
 }
 ```
 
@@ -558,7 +558,7 @@ generators, custom filter logic — edit the TS source. Items in
                                 // the theme switcher to "apply + return")
 ```
 
-`{ tmux }` is special: it dispatches *after* the popup closes, so interactive
+`{ tmux }` is special: it dispatches _after_ the popup closes, so interactive
 tmux prompts (`confirm-before`, `command-prompt`) actually get keyboard
 input. Without this, prompts hang because the popup still owns stdin.
 
@@ -566,7 +566,7 @@ input. Without this, prompts hang because the popup still owns stdin.
 
 The bash wrapper opens a `tmux display-popup` running the palette. When you
 pick an item, the palette writes the encoded command to a tempfile and exits.
-The wrapper *then* reads the tempfile and runs the command — *after* the
+The wrapper _then_ reads the tempfile and runs the command — _after_ the
 popup is gone. This matters because interactive tmux commands like
 `confirm-before` need stdin, which is captured by the popup while it's open.
 

@@ -17,13 +17,13 @@ Reload (`tmux source-file ~/.tmux.conf`), hit your binding, you're done.
 
 ## What's here
 
-| File | What it does | Needs |
-|------|--------------|-------|
-| [`git-branches.json`](git-branches.json) | List local branches, click to `git checkout` in the current pane | `git` |
-| [`github-prs.json`](github-prs.json) | List open/draft/merged/closed PRs with color-coded status dots, click to open in browser | `gh` (authed) |
-| [`docker-containers.json`](docker-containers.json) | List running containers, click to tail logs in a popup | `docker` |
-| [`npm-scripts.json`](npm-scripts.json) | List scripts from the current dir's `package.json`, click to run | `jq`, `npm`, a `package.json` in `$PWD` |
-| [`find-files.json`](find-files.json) | List files in the current dir tree, click to open in `$EDITOR` | `find`, `$EDITOR` set |
+| File                                               | What it does                                                                             | Needs                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------- |
+| [`git-branches.json`](git-branches.json)           | List local branches, click to `git checkout` in the current pane                         | `git`                                   |
+| [`github-prs.json`](github-prs.json)               | List open/draft/merged/closed PRs with color-coded status dots, click to open in browser | `gh` (authed)                           |
+| [`docker-containers.json`](docker-containers.json) | List running containers, click to tail logs in a popup                                   | `docker`                                |
+| [`npm-scripts.json`](npm-scripts.json)             | List scripts from the current dir's `package.json`, click to run                         | `jq`, `npm`, a `package.json` in `$PWD` |
+| [`find-files.json`](find-files.json)               | List files in the current dir tree, click to open in `$EDITOR`                           | `find`, `$EDITOR` set                   |
 
 ## How these work
 
