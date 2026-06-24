@@ -12,8 +12,8 @@
     "typecheck": "tsc --noEmit",
     "check:dead-code": "fallow dead-code",
     "check:dupes": "fallow dupes",
-    "check:format": "oxfmt --check",
-    "format": "oxfmt --write"
+    "check:format": "git ls-files -z '*.ts' '*.json' '*.jsonc' '*.yml' '*.yaml' | xargs -0 oxfmt --check",
+    "format": "git ls-files -z '*.ts' '*.json' '*.jsonc' '*.yml' '*.yaml' | xargs -0 oxfmt --write"
   },
   "dependencies": {},
   "devDependencies": {
