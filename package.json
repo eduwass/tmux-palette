@@ -11,11 +11,14 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check:dead-code": "fallow dead-code",
-    "check:dupes": "fallow dupes"
+    "check:dupes": "fallow dupes",
+    "check:format": "oxfmt --check",
+    "format": "oxfmt --write"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "fallow": "^2.69.0"
+    "fallow": "^2.69.0",
+    "oxfmt": "^0.54.0"
   },
   "peerDependencies": {
     "typescript": "^5"
