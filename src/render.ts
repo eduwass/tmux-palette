@@ -17,11 +17,12 @@ export function isSelectable(item: Item | undefined): boolean {
   return !!item && item.selectable !== false
 }
 
-export function step(vis: Item[], from: number, dir: 1 | -1): number {
+export function step(vis: Item[], from: number, dir: 1 | -1, wrap = true): number {
   if (!vis.length) return 0
   let i = from
   for (let n = 0; n < vis.length; n++) {
-    i = (i + dir + vis.length) % vis.length
+    i = wrap ? (i + dir + vis.length) % vis.length : i + dir
+    if (i < 0 || i >= vis.length) return from
     if (isSelectable(vis[i])) return i
   }
   return from

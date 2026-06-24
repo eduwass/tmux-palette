@@ -83,6 +83,17 @@ export function userSizing(): Sizing {
   return _sizing
 }
 
+export type Navigation = {
+  // When true, moving past the first/last selectable item wraps around.
+  // Default: true.
+  wrapAtListEnds?: boolean
+}
+let _navigation: Navigation | null = null
+export function userNavigation(): Navigation {
+  if (!_navigation) _navigation = loadJSON<Navigation>("navigation.json", {})
+  return _navigation
+}
+
 export type CustomPalette = {
   title?: string
   items?: Item[]
