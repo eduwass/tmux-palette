@@ -86,7 +86,7 @@ export type Navigation = {
   // When true, moving past the first/last selectable item wraps around.
   // Default: true.
   wrapAtListEnds?: boolean;
-  // When true, Ctrl+J/K move up/down and Ctrl+U/D page up/down.
+  // When true, Ctrl+J/K move down/up and Ctrl+U/D page up/down.
   // Default: false (keeps Ctrl+K/U as search-box editing shortcuts).
   vimKeys?: boolean;
 };
