@@ -340,6 +340,19 @@ Action types: `{ "tmux": "..." }`, `{ "shell": "..." }`, `{ "popup": "..." }`, `
 (80% × 80%, closes when the command exits). Handy for log viewers,
 htop, btop, less, fzf-driven tools, etc.
 
+### `navigation.json` — list navigation behavior
+
+```json
+{
+  "wrapAtListEnds": true
+}
+```
+
+All keys optional. `wrapAtListEnds` controls list navigation at the first
+and last selectable items. It defaults to `true`, so moving past either
+end wraps around. Set it to `false` to make the beginning and end hard
+stops.
+
 ### `sizing.json` — popup dimensions and borders
 
 ```json
