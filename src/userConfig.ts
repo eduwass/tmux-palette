@@ -87,6 +87,9 @@ export type Navigation = {
   // When true, moving past the first/last selectable item wraps around.
   // Default: true.
   wrapAtListEnds?: boolean
+  // When true, Ctrl+J/K move up/down and Ctrl+U/D page up/down.
+  // Default: false (keeps Ctrl+K/U as search-box editing shortcuts).
+  vimKeys?: boolean
 }
 let _navigation: Navigation | null = null
 export function userNavigation(): Navigation {

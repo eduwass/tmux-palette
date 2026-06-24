@@ -188,7 +188,7 @@ Constraints
 ## Usage
 
 - **Type** to filter. Multi-word search is supported (`split horiz`).
-- **Up/Down arrows** or **Ctrl+P / Ctrl+N** to move selection.
+- **Up/Down arrows** or **Ctrl+P / Ctrl+N** to move selection; **PageUp/PageDown** to page. Turn on `vimKeys` in `navigation.json` for **Ctrl+J/K** (up/down) and **Ctrl+U/D** (page), replacing the search-box bindings for those keys.
 - **Enter** to run the selected command.
 - **Esc** to cancel.
 - **Mouse** works too — click rows, scroll the wheel.
@@ -344,7 +344,8 @@ htop, btop, less, fzf-driven tools, etc.
 
 ```json
 {
-  "wrapAtListEnds": true
+  "wrapAtListEnds": true,
+  "vimKeys": true
 }
 ```
 
@@ -352,6 +353,9 @@ All keys optional. `wrapAtListEnds` controls list navigation at the first
 and last selectable items. It defaults to `true`, so moving past either
 end wraps around. Set it to `false` to make the beginning and end hard
 stops.
+
+`vimKeys` adds **Ctrl+J/K** for moving up/down and **Ctrl+U/D** for paging,
+replacing the search-box edit bindings for those keys. Default: `false`.
 
 ### `sizing.json` — popup dimensions and borders
 

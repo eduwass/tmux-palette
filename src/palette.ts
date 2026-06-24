@@ -72,6 +72,10 @@ const NAV_KEYS: Record<string, number> = {
   "\x1b[6~": 10,
 }
 
+export function buildNavKeys(vimKeys: boolean): Record<string, number> {
+  return vimKeys ? { ...NAV_KEYS, "\x0b": -1, "\x0a": 1, "\x15": -10, "\x04": 10 } : { ...NAV_KEYS }
+}
+
 type MouseEvent = { button: number; x: number; y: number; kind: string }
 
 function parseMouseEvent(key: string): MouseEvent | null {
@@ -108,6 +112,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   let rawItems: Item[] = typeof def.items === "function" ? await def.items() : def.items
   let items: Item[] = applyUserOverrides(rawItems)
   let title = def.title ?? "Commands"
+  const navKeys = buildNavKeys(userNavigation().vimKeys ?? false)
   let grouped = def.grouped !== false
   let emptyText = def.emptyText ?? "No results"
 
@@ -383,7 +388,7 @@ export async function runPalette(def: PaletteDef, loader?: PaletteLoader, initia
   }
 
   function handleNavigationKey(key: string, vis: Item[]): boolean {
-    const delta = NAV_KEYS[key]
+    const delta = navKeys[key]
     if (delta === undefined) return false
     const dir = delta > 0 ? 1 : -1
     const count = Math.abs(delta)
