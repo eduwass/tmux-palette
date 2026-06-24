@@ -16,3 +16,4 @@ jobs:
       - run: bun run typecheck
       - run: bun run check:dead-code
       - run: bun run check:dupes
+      - run: bun run check:format
